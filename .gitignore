@@ -1,0 +1,21 @@
+# Node modules (don’t push heavy dependencies)
+node_modules/
+
+# Environment variable files (secret keys etc.)
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+
+# VSCode settings (optional)
+.vscode/
