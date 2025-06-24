@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
-
+const protectedRoutes = require("./routes/protected");
 
 // Load env variables
 dotenv.config();
@@ -20,6 +20,7 @@ app.use(express.json());
 
 // Use route
 app.use("/api/auth", authRoutes);
+app.use("/api", protectedRoutes);
 
 // Sample Route
 app.get("/", (req, res) => {
