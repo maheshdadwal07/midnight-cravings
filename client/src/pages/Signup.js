@@ -1,30 +1,18 @@
 import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
 
-const Register = () => {
+const Signup = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
   });
 
-  const navigate = useNavigate();
-
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      const res = await axios.post("http://localhost:5000/api/auth/register", formData);
-      console.log("✅ Registered:", res.data);
-      alert("User registered successfully ✅");
-      navigate("/login");
-    } catch (err) {
-      console.error("❌ Registration error:", err.response?.data?.message);
-      alert(err.response?.data?.message || "Something went wrong");
-    }
+    console.log("Signup Data:", formData);
   };
 
   return (
@@ -80,4 +68,4 @@ const Register = () => {
   );
 };
 
-export default Register;
+export default Signup;
