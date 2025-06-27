@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
 import Profile from "./pages/Profile";
 import PrivateRoute from "./components/PrivateRoute";
+import ProfileSettings from "./pages/ProfileSettings";
 function App() {
   return (
     <Router>
@@ -21,6 +22,11 @@ function App() {
         <Route path="/profile" element={ <PrivateRoute>  <Profile /> </PrivateRoute>
   }
 />
+<Route path="/settings" element={
+  <PrivateRoute>
+    <ProfileSettings />
+  </PrivateRoute>
+} />
       </Routes>
     </Router>
   );
