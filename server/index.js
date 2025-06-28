@@ -25,6 +25,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api", protectedRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/uploads", express.static("uploads"));// profile pic public banani ke liye
 
 // Sample Route
 app.get("/", (req, res) => {
