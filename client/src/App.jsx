@@ -8,7 +8,7 @@ import Register from './pages/Register.jsx';
 import Signup from './pages/Signup.jsx';
 import Profile from './pages/Profile.jsx';
 import ProfileSettings from './pages/ProfileSettings.jsx';
-
+import ProductDetail from './pages/ProductDetail.jsx';
 import Navbar from './components/Navbar.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
 import AddProduct from './components/AddProduct.jsx';
@@ -18,7 +18,6 @@ function App() {
       <Navbar />
        <Routes>
         <Route path="/" element={<Home />} />
-        
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/signup" element={<Signup />} />
@@ -39,7 +38,9 @@ function App() {
           <PrivateRoute>
             <AddProduct />
           </PrivateRoute>
-        } />
+        } />        
+        <Route path="/product/:id" element=
+        {<ProductDetail />} />
       </Routes>
     </Router>
   );

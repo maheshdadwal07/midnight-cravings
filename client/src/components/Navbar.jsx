@@ -29,6 +29,10 @@ const Navbar = () => {
           </>
         ) : (
           <>
+            <Link to="/add-product" className="hover:underline">
+
+             Add Product
+            </Link>
             <Link to="/settings" className="hover:underline">
               Settings
             </Link>

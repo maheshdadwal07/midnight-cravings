@@ -1,29 +1,23 @@
-// components/Home.jsx
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+// components/HomeCard.jsx
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-function Home() {
-  const [products, setProducts] = useState([]);
-
-  useEffect(() => {
-    axios.get('/api/products').then(res => {
-      setProducts(res.data);
-    });
-  }, []);
-
+const HomeCard = ({ product }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-      {products.map(product => (
-        <div key={product._id} className="border p-4 rounded shadow">
-          <img src={`/${product.image}`} className="w-full h-48 object-cover" alt={product.name} />
-          <h2 className="text-lg font-bold">{product.name}</h2>
-          <p>₹{product.price}</p>
-          <p>{product.description}</p>
-          <p className="text-sm text-gray-600">Contact: {product.contact}</p>
-        </div>
-      ))}
-    </div>
+    <Link to={`/product/${product._id}`}>
+      <div className="border p-4 rounded shadow hover:shadow-lg transition cursor-pointer">
+        <img
+          src={`/${product.image}`}
+          className="w-full h-48 object-cover mb-2"
+          alt={product.name}
+        />
+        <h2 className="text-lg font-bold">{product.name}</h2>
+        <p className="text-green-600 font-semibold">₹{product.price}</p>
+        <p className="text-gray-700 truncate">{product.description}</p>
+        <p className="text-sm text-gray-500 mt-1">Contact: {product.contact}</p>
+      </div>
+    </Link>
   );
-}
+};
 
-export default Home;
+export default HomeCard;

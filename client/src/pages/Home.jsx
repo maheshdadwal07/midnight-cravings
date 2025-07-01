@@ -1,6 +1,7 @@
+// pages/Home.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import HomeCard from '../components/HomeCard.jsx';
+import HomeCard from '../components/HomeCard';
 
 const Home = () => {
   const [products, setProducts] = useState([]);
