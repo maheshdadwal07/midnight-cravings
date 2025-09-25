@@ -1,59 +1,110 @@
 // src/components/HostelModal.jsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 
-export default function HostelModal({ onClose }) {
-  const navigate = useNavigate();
-  const [selectedHostel, setSelectedHostel] = useState("");
+const dummyProducts = [
+  { id: 1, name: "Maggie", price: 10 },
+  { id: 2, name: "Biscuits", price: 5 },
+  { id: 3, name: "Namkeen", price: 15 },
+  { id: 4, name: "Chips", price: 10 },
+];
 
-  const hostels = [
-    "Hostel A1",
-    "Hostel A2",
-    "Hostel B",
-    "Hostel C",
-    "Girls Hostel",
-    "PG Hostel",
-  ];
+const hostels = [
+  { name: "Archimedes", options: ["A", "B"] },
+  { name: "Magellan", options: [] },
+  { name: "Aristotle", options: [] },
+  { name: "Armstrong", options: [] },
+  { name: "Marco Polo", options: [] },
+  { name: "Franklin", options: ["A", "B"] },
+];
 
-  const handleEnterShop = () => {
-    if (!selectedHostel) return;
-    // Pass hostel in route state
-    navigate("/shop", { state: { hostel: selectedHostel } });
-    onClose();
+const HostelModal = ({ onSelectHostel }) => {
+  const [selectedHostel, setSelectedHostel] = useState(null);
+
+  const handleHostelClick = (hostel, option = null) => {
+    const hostelName = option ? `${hostel} (${option})` : hostel;
+    setSelectedHostel(hostelName);
+    onSelectHostel(hostelName); // send selection to parent
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      {/* Blur background */}
+    <div
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100vw",
+        height: "100vh",
+        background: "rgba(0,0,0,0.5)",
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 1000,
+      }}
+    >
       <div
-        className="absolute inset-0 backdrop-blur-md bg-black/40"
-        onClick={onClose}
-      ></div>
+        style={{
+          background: "white",
+          padding: "30px",
+          borderRadius: "12px",
+          minWidth: "300px",
+          textAlign: "center",
+        }}
+      >
+        <h2 style={{ marginBottom: "20px" }}>Choose Hostel</h2>
+        {hostels.map((hostel) =>
+          hostel.options.length > 0 ? (
+            hostel.options.map((opt) => (
+              <button
+                key={`${hostel.name}-${opt}`}
+                onClick={() => handleHostelClick(hostel.name, opt)}
+                style={{
+                  margin: "5px",
+                  padding: "10px 15px",
+                  borderRadius: "8px",
+                  border: "1px solid #ff0000",
+                  background: "#fff",
+                  color: "#ff0000",
+                  cursor: "pointer",
+                }}
+              >
+                {hostel.name} ({opt})
+              </button>
+            ))
+          ) : (
+            <button
+              key={hostel.name}
+              onClick={() => handleHostelClick(hostel.name)}
+              style={{
+                margin: "5px",
+                padding: "10px 15px",
+                borderRadius: "8px",
+                border: "1px solid #ff0000",
+                background: "#fff",
+                color: "#ff0000",
+                cursor: "pointer",
+              }}
+            >
+              {hostel.name}
+            </button>
+          )
+        )}
 
-      {/* Modal box */}
-      <div className="relative bg-white rounded-2xl shadow-xl p-8 w-80 z-10">
-        <h2 className="text-2xl font-bold text-red-600 mb-4 text-center">
-          Choose Your Hostel
-        </h2>
-        <select
-          className="w-full border rounded-lg px-3 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-red-500"
-          value={selectedHostel}
-          onChange={(e) => setSelectedHostel(e.target.value)}
-        >
-          <option value="">-- Select Hostel --</option>
-          {hostels.map((h, idx) => (
-            <option key={idx} value={h}>
-              {h}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={handleEnterShop}
-          className="w-full py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition"
-        >
-          Enter Shop
-        </button>
+        {selectedHostel && (
+          <div style={{ marginTop: "20px", textAlign: "left" }}>
+            <h3>Available Snacks for {selectedHostel}:</h3>
+            <ul>
+              {dummyProducts.map((product) => (
+                <li key={product.id}>
+                  {product.name} - ₹{product.price}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default HostelModal;
