@@ -71,7 +71,12 @@ const Landing = () => {
       </div>
 
       {/* Hostel Modal */}
-      {showHostelModal && <HostelModal onSelectHostel={handleHostelSelect} />}
+      {showHostelModal && (
+        <HostelModal
+          onSelectHostel={handleHostelSelect}
+          onClose={() => setShowHostelModal(false)} // ✅ yaha add karo
+        />
+      )}
     </div>
   );
 };

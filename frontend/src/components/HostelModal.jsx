@@ -1,12 +1,7 @@
 // src/components/HostelModal.jsx
 import React, { useState } from "react";
-
-const dummyProducts = [
-  { id: 1, name: "Maggie", price: 10 },
-  { id: 2, name: "Biscuits", price: 5 },
-  { id: 3, name: "Namkeen", price: 15 },
-  { id: 4, name: "Chips", price: 10 },
-];
+import { motion, AnimatePresence } from "framer-motion";
+import Confetti from "react-confetti";
 
 const hostels = [
   { name: "Archimedes", options: ["A", "B"] },
@@ -17,94 +12,151 @@ const hostels = [
   { name: "Franklin", options: ["A", "B"] },
 ];
 
-const HostelModal = ({ onSelectHostel }) => {
+const HostelModal = ({ onSelectHostel, onClose }) => {
   const [selectedHostel, setSelectedHostel] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleHostelClick = (hostel, option = null) => {
     const hostelName = option ? `${hostel} (${option})` : hostel;
     setSelectedHostel(hostelName);
-    onSelectHostel(hostelName); // send selection to parent
+    setShowConfetti(true);
+
+    // 3 sec confetti, then trigger parent callback
+    setTimeout(() => {
+      setShowConfetti(false);
+      onSelectHostel(hostelName);
+    }, 3000);
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        background: "rgba(0,0,0,0.5)",
-        backdropFilter: "blur(8px)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          padding: "30px",
-          borderRadius: "12px",
-          minWidth: "300px",
-          textAlign: "center",
-        }}
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={overlayStyle}
       >
-        <h2 style={{ marginBottom: "20px" }}>Choose Hostel</h2>
-        {hostels.map((hostel) =>
-          hostel.options.length > 0 ? (
-            hostel.options.map((opt) => (
-              <button
-                key={`${hostel.name}-${opt}`}
-                onClick={() => handleHostelClick(hostel.name, opt)}
-                style={{
-                  margin: "5px",
-                  padding: "10px 15px",
-                  borderRadius: "8px",
-                  border: "1px solid #ff0000",
-                  background: "#fff",
-                  color: "#ff0000",
-                  cursor: "pointer",
-                }}
-              >
-                {hostel.name} ({opt})
-              </button>
-            ))
-          ) : (
-            <button
-              key={hostel.name}
-              onClick={() => handleHostelClick(hostel.name)}
-              style={{
-                margin: "5px",
-                padding: "10px 15px",
-                borderRadius: "8px",
-                border: "1px solid #ff0000",
-                background: "#fff",
-                color: "#ff0000",
-                cursor: "pointer",
-              }}
-            >
-              {hostel.name}
-            </button>
-          )
+        {/* Confetti Celebration */}
+        {showConfetti && (
+          <Confetti width={window.innerWidth} height={window.innerHeight} />
         )}
 
-        {selectedHostel && (
-          <div style={{ marginTop: "20px", textAlign: "left" }}>
-            <h3>Available Snacks for {selectedHostel}:</h3>
-            <ul>
-              {dummyProducts.map((product) => (
-                <li key={product.id}>
-                  {product.name} - ₹{product.price}
-                </li>
-              ))}
-            </ul>
+        {/* Main Pop Card */}
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.7, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          style={cardStyle}
+        >
+          <h2 style={{ marginBottom: "25px", color: "#ff0000" }}>
+            🎓 Choose Your Hostel
+          </h2>
+
+          <div style={buttonContainerStyle}>
+            {hostels.map((hostel) =>
+              hostel.options.length > 0 ? (
+                hostel.options.map((opt) => (
+                  <motion.button
+                    key={`${hostel.name}-${opt}`}
+                    whileHover={{
+                      scale: 1.1,
+                      backgroundColor: "#ff0000",
+                      color: "#fff",
+                    }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleHostelClick(hostel.name, opt)}
+                    style={buttonStyle}
+                  >
+                    {hostel.name} ({opt})
+                  </motion.button>
+                ))
+              ) : (
+                <motion.button
+                  key={hostel.name}
+                  whileHover={{
+                    scale: 1.1,
+                    backgroundColor: "#ff0000",
+                    color: "#fff",
+                  }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleHostelClick(hostel.name)}
+                  style={buttonStyle}
+                >
+                  {hostel.name}
+                </motion.button>
+              )
+            )}
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Close Button */}
+          <motion.button
+            whileHover={{ scale: 1.1, backgroundColor: "#333", color: "#fff" }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onClose} // ✅ sirf onClose call karega
+            style={closeButtonStyle}
+          >
+            ✖ Close
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
+};
+
+// 🎨 Styles
+const overlayStyle = {
+  position: "fixed",
+  top: 0,
+  left: 0,
+  width: "100vw",
+  height: "100vh",
+  background: "rgba(0,0,0,0.6)",
+  backdropFilter: "blur(10px)",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 1000,
+};
+
+const cardStyle = {
+  background: "white",
+  padding: "40px",
+  borderRadius: "20px",
+  width: "80%",
+  maxWidth: "700px",
+  textAlign: "center",
+  boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
+  position: "relative",
+};
+
+const buttonContainerStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  gap: "12px",
+};
+
+const buttonStyle = {
+  padding: "10px 18px",
+  borderRadius: "10px",
+  border: "2px solid #ff0000",
+  background: "#fff",
+  color: "#ff0000",
+  fontWeight: "bold",
+  cursor: "pointer",
+  transition: "0.2s",
+};
+
+const closeButtonStyle = {
+  marginTop: "25px",
+  padding: "10px 20px",
+  borderRadius: "8px",
+  border: "none",
+  background: "#ff0000",
+  color: "#fff",
+  fontWeight: "bold",
+  cursor: "pointer",
 };
 
 export default HostelModal;
