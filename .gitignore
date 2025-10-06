@@ -25,7 +25,3 @@ frontend/dist/
 
 # VSCode settings (optional)
 .vscode/
-
-# File uploads (user-generated content)
-uploads/
-backend/uploads/
