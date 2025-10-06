@@ -1,23 +1,42 @@
-// src/App.jsx
-import { useState } from "react";
+import React from "react";
 import { Routes, Route } from "react-router-dom";
-import Landing from "./pages/Landing";
-import Shop from "./pages/Shop";
+import Home from "./pages/Home";
+import Products from "./pages/Products";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ProductDetail from "./pages/ProductDetail";
+import SellerDashboard from "./pages/SellerDashboard";
+import Admin from "./pages/Admin";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Cart from "./pages/Cart";
+import MyOrders from "./pages/MyOrders";
 
 export default function App() {
-  // Cart state yaha define karo
-  const [cart, setCart] = useState([]);
-
   return (
     <Routes>
-      <Route path="/" element={<Landing />} />
-
-      {/* Shop ko cart aur setCart pass karo taki "Add to Cart" wahan kaam kare */}
-      <Route path="/shop" element={<Shop cart={cart} setCart={setCart} />} />
-
-      {/* Cart page ko bhi state bhejo */}
-      <Route path="/cart" element={<Cart cart={cart} setCart={setCart} />} />
+      <Route path="/" element={<Home />} />
+      <Route path="/products" element={<Products />} />
+      <Route path="/products/:id" element={<ProductDetail />} />
+      <Route
+        path="/seller"
+        element={
+          <ProtectedRoute allowedRoles={["seller"]}>
+            <SellerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/cart" element={<Cart />} />
+      <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
     </Routes>
   );
 }

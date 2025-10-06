@@ -1,12 +1,36 @@
-# React + Vite
+# Midnight Cravings — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is a minimal React frontend scaffold for the `backend/` in this workspace.
 
-Currently, two official plugins are available:
+Prereqs
+- Node.js (16+ recommended)
+- npm
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Setup (Windows PowerShell)
 
-## Expanding the ESLint configuration
+1. Install dependencies
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+   npm install
+
+2. Build Tailwind CSS (required once, or whenever you change `src/index.css`):
+
+   npm run build:css
+
+   This will generate `src/tailwind.generated.css` from `src/index.css` (the file with `@tailwind base; @tailwind components; @tailwind utilities`).
+
+3. Start dev server
+
+   npm run dev
+
+Or run both build and dev in one step:
+
+   npm run start:local
+
+Notes
+- API base URL is read from environment variable `VITE_API_URL`. By default it uses `http://localhost:5000`.
+- The `Products` page requests `GET /api/products` — make sure your backend server is running.
+- The project includes a small fallback stylesheet `src/fallback.css` so the app is usable even if Tailwind build isn't available in the environment.
+
+Next steps
+- Implement login/register forms and auth flow.
+- Add Cart page and product detail pages.
