@@ -7,6 +7,10 @@ import sellerRoutes from "./routes/sellerRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import paymentRoutes from "./routes/payment.js";
 import orderRoutes from "./routes/orderRoutes.js";
+
+import adminRoutes from "./routes/adminRoutes.js";
+
+
 import path from "path";
 
 import cartRoutes from "./routes/cartRoutes.js";
@@ -23,6 +27,8 @@ app.use("/api/products", productRoutes);
 app.use("/api/seller", sellerRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/orders", orderRoutes);
+
+app.use("/api/admin", adminRoutes);
  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/", (req, res) => {

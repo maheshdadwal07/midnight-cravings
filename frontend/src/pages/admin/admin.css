@@ -1,0 +1,25 @@
+.container { padding: 32px; max-width: 1100px; margin: auto; }
+.mainTitle { font-size: 24px; font-weight: 700; }
+.subtitle { color: #6b7280; margin-bottom: 20px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tabBtn { padding: 8px 16px; border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 8px; text-decoration: none; color: #111; }
+.tabBtn.active { background: #6366f1; color: white; border: none; }
+.card { background: #fff; border-radius: 10px; padding: 18px; box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
+.list { list-style: none; padding: 0; margin-top: 8px; }
+.item { padding: 10px; border-bottom: 1px solid #f3f4f6; }
+.bold { font-weight: 600; }
+.textGray { color: #6b7280; }
+.textRed { color: #ef4444; }
+.smallText { font-size: 13px; color: #9ca3af; }
+.btn { padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.btnGray { background: #f3f4f6; border: 1px solid #e5e7eb; }
+.btnBlue { background: #6366f1; color: white; border: none; }
+.btnRed { background: #ef4444; color: white; border: none; }
+.btnGreen { background: #10b981; color: white; border: none; }
+.actions { display: flex; gap: 8px; }
+.actionsRight { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.flexBetween { display: flex; justify-content: space-between; align-items: center; }
+.input { padding: 8px; border-radius: 6px; border: 1px solid #e5e7eb; }
+.full { width: 100%; margin-top: 8px; padding: 10px; }
+.formGrid { display: grid; gap: 8px; }
+.mt16 { margin-top: 16px; }

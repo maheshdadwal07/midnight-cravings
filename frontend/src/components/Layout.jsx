@@ -11,7 +11,7 @@ export default function Layout({ children }) {
         <Navbar />
       </div>
       <main style={{flex:1}}>{children}</main>
-      <Footer />
+      {/* <Footer /> */}
     </div>
   )
 }

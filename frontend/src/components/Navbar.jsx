@@ -91,6 +91,14 @@ export default function Navbar() {
             label="Products"
             active={location.pathname === "/products"}
           />
+          {user && user.role === "user" && (
+            <NavItem
+              to="/my-orders"
+              label="My Orders"
+              active={location.pathname === "/my-orders"}
+           
+            />
+          )}
 
           <Link to="/cart" style={styles.cartIcon}>
             <i data-feather="shopping-cart"></i>
@@ -186,6 +194,15 @@ export default function Navbar() {
             isMobile
             onClick={() => setMobileOpen(false)}
           />
+          {user && user.role === "user" && (
+            <NavItem
+              to="/my-orders"
+              label="My Orders"
+              active={location.pathname === "/my-orders"}
+              isMobile
+              onClick={() => setMobileOpen(false)}
+            />
+          )}
 
           <Link
             to="/cart"
