@@ -8,6 +8,7 @@ export default function Products() {
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sortBy, setSortBy] = useState("name");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -35,6 +36,12 @@ export default function Products() {
 
     let result = [...products];
 
+    // Filter out products with no sellers
+    result = result.filter((p) => {
+      const sellerCount = p.sellerCount || (p.sellers || []).length || 0;
+      return sellerCount > 0;
+    });
+
     if (search) {
       result = result.filter(
         (p) =>
@@ -47,8 +54,21 @@ export default function Products() {
       result = result.filter((p) => p.category === category);
     }
 
+    // Add sorting logic
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.price - b.price;
+        case "price-high":
+          return b.price - a.price;
+        case "name":
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+
     setFiltered(result);
-  }, [location.search, products]);
+  }, [location.search, products, sortBy]);
 
   if (loading) return <div className="container">Loading products...</div>;
   if (error)
@@ -66,12 +86,74 @@ export default function Products() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          marginBottom: 20,
         }}
       >
         <h2 style={{ fontSize: 22, fontWeight: 700 }}>Products</h2>
         <div style={{ fontSize: 13, color: "#6b7280" }}>
           {filtered.length} items
         </div>
+      </div>
+
+      {/* Filters and Sort */}
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          marginBottom: 20,
+        }}
+      >
+        <select
+          value={new URLSearchParams(location.search).get("category") || ""}
+          onChange={(e) => {
+            const params = new URLSearchParams(location.search);
+            if (e.target.value) {
+              params.set("category", e.target.value);
+            } else {
+              params.delete("category");
+            }
+            navigate(`?${params.toString()}`);
+          }}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #d1d5db",
+            backgroundColor: "#fff",
+            fontSize: "14px",
+            minWidth: "160px"
+          }}
+        >
+          <option value="">All Categories</option>
+          <option value="Snacks">Snacks</option>
+          <option value="Beverages">Beverages</option>
+          <option value="Biscuits">Biscuits</option>
+          <option value="Chocolates">Chocolates</option>
+          <option value="Chips">Chips</option>
+          <option value="Noodles">Noodles</option>
+          <option value="Desserts">Desserts</option>
+          <option value="Ice Cream">Ice Cream</option>
+          <option value="Sandwiches">Sandwiches</option>
+          <option value="Fast Food">Fast Food</option>
+          <option value="Healthy">Healthy</option>
+          <option value="Dairy">Dairy</option>
+        </select>
+
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #d1d5db",
+            backgroundColor: "#fff",
+            fontSize: "14px",
+            minWidth: "160px"
+          }}
+        >
+          <option value="name">Sort by Name</option>
+          <option value="price-low">Price: Low to High</option>
+          <option value="price-high">Price: High to Low</option>
+        </select>
       </div>
 
       {/* Grid Section */}

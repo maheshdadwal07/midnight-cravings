@@ -16,6 +16,22 @@ export default function ProductsPage() {
   const [deleteModal, setDeleteModal] = useState(false);
   const [target, setTarget] = useState(null);
 
+  // Category Options for Food Delivery
+  const categories = [
+    "Snacks",
+    "Beverages",
+    "Biscuits",
+    "Chocolates",
+    "Chips",
+    "Noodles",
+    "Desserts",
+    "Ice Cream",
+    "Sandwiches",
+    "Fast Food",
+    "Healthy",
+    "Dairy",
+  ];
+
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -50,9 +66,9 @@ export default function ProductsPage() {
         description: "",
         imageFile: null,
       });
-      toast.success("Product created");
+      toast.success("Snack added successfully!");
     } catch {
-      toast.error("Failed to create");
+      toast.error("Failed to create snack");
     } finally {
       setCreating(false);
     }
@@ -62,7 +78,7 @@ export default function ProductsPage() {
     try {
       await api.delete(`/api/products/${id}`);
       setProducts((prev) => prev.filter((p) => p._id !== id));
-      toast.success("Product deleted");
+      toast.success("Snack deleted");
       setDeleteModal(false);
     } catch {
       toast.error("Delete failed");
@@ -87,6 +103,7 @@ export default function ProductsPage() {
     );
   };
 
+  // ✅ FIXED handleUpdate: no more disappearing items
   const handleUpdate = async (p) => {
     try {
       const formData = new FormData();
@@ -96,16 +113,30 @@ export default function ProductsPage() {
       formData.append("description", p._editDescription);
       if (p._editImageFile) formData.append("image", p._editImageFile);
 
-      const res = await api.patch(`/api/products/${p._id}`, formData, {
+      await api.patch(`/api/products/${p._id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      // ✅ Merge update locally instead of relying on backend response
       setProducts((prev) =>
         prev.map((x) =>
-          x._id === p._id ? { ...res.data, _editing: false } : x
+          x._id === p._id
+            ? {
+                ...x,
+                name: p._editName,
+                category: p._editCategory,
+                hostel: p._editHostel,
+                description: p._editDescription,
+                _editing: false,
+                image: p._editImageFile
+                  ? URL.createObjectURL(p._editImageFile)
+                  : x.image,
+              }
+            : x
         )
       );
-      toast.success("Product updated");
+
+      toast.success("Snack updated successfully!");
     } catch {
       toast.error("Update failed");
     }
@@ -115,13 +146,14 @@ export default function ProductsPage() {
     product._editImageFile
       ? URL.createObjectURL(product._editImageFile)
       : product.image
-      ? `http://localhost:5000${product.image}`
-      : "https://via.placeholder.com/400x300?text=Product";
+      ? `http://localhost:5001${product.image}`
+      : "https://via.placeholder.com/400x300?text=Snack+Image";
 
   return (
     <div className="container">
-      <h2 className="mainTitle">Products</h2>
+      <h2 className="mainTitle">Midnight Snacks 💤🍫</h2>
 
+      {/* Product Grid */}
       <div className="grid">
         {products.map((p) => (
           <div key={p._id} className="card">
@@ -141,7 +173,9 @@ export default function ProductsPage() {
                   placeholder="Name"
                   className="input"
                 />
-                <input
+
+                {/* Category Dropdown */}
+                <select
                   value={p._editCategory}
                   onChange={(e) =>
                     setProducts((prev) =>
@@ -152,9 +186,16 @@ export default function ProductsPage() {
                       )
                     )
                   }
-                  placeholder="Category"
                   className="input"
-                />
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   value={p._editHostel}
                   onChange={(e) =>
@@ -225,8 +266,8 @@ export default function ProductsPage() {
                 <div className="productInfo">
                   <strong>{p.name}</strong>
                   <div className="textGray">{p.description}</div>
-                  <div className="smallText">Category: {p.category}</div>
-                  <div className="smallText">Hostel: {p.hostel}</div>
+                  <div className="smallText">🍴 Category: {p.category}</div>
+                  <div className="smallText">🏠 Hostel: {p.hostel}</div>
                 </div>
                 <div className="actions">
                   <button
@@ -253,22 +294,31 @@ export default function ProductsPage() {
 
       {/* Add Product */}
       <div className="card mt16">
-        <h3>Add Product</h3>
+        <h3>Add New Snack 🍪</h3>
         <div className="formGrid">
           <input
-            placeholder="Name"
+            placeholder="Snack Name"
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             className="input"
           />
-          <input
-            placeholder="Category"
+
+          {/* Category Dropdown */}
+          <select
             value={form.category}
             onChange={(e) =>
               setForm((f) => ({ ...f, category: e.target.value }))
             }
             className="input"
-          />
+          >
+            <option value="">Select Category</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+
           <input
             placeholder="Hostel"
             value={form.hostel}
@@ -303,11 +353,12 @@ export default function ProductsPage() {
             disabled={creating}
             onClick={handleCreate}
           >
-            {creating ? "Creating..." : "Create Product"}
+            {creating ? "Creating..." : "Add Snack"}
           </button>
         </div>
       </div>
 
+      {/* Delete Confirmation Modal */}
       <Modal
         open={deleteModal}
         onClose={() => setDeleteModal(false)}

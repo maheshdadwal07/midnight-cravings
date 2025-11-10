@@ -55,6 +55,167 @@ export default function Navbar() {
     navigate("/");
   };
 
+  // ==================== SELLER NAVBAR ====================
+  if (user && user.role === "seller") {
+    return (
+      <nav style={styles.navbar}>
+        <div style={styles.navContainer}>
+          {/* Logo */}
+          <Link to="/seller" style={styles.logo}>
+            <i data-feather="box"></i>
+            Midnight
+            <span style={styles.logoHighlight}>Cravings</span>
+          </Link>
+
+          {/* Desktop - Seller Navigation */}
+          <div
+            style={{
+              display: isMobile ? "none" : "flex",
+              alignItems: "center",
+              gap: "1.5rem",
+            }}
+          >
+            <NavItem
+              to="/seller"
+              label="📊 Dashboard"
+              active={location.pathname === "/seller"}
+            />
+            <div style={styles.navDivider}></div>
+            <span style={styles.navLabel}>Quick Actions:</span>
+            <button
+              onClick={() => {
+                navigate("/seller");
+                // Simulate click on "My Listings" tab after navigation
+                setTimeout(() => {
+                  const listingsTab = document.querySelector('[data-tab="listings"]');
+                  if (listingsTab) listingsTab.click();
+                }, 100);
+              }}
+              style={styles.quickActionBtn}
+            >
+              📦 Listings
+            </button>
+            <button
+              onClick={() => {
+                navigate("/seller");
+                setTimeout(() => {
+                  const ordersTab = document.querySelector('[data-tab="orders"]');
+                  if (ordersTab) ordersTab.click();
+                }, 100);
+              }}
+              style={styles.quickActionBtn}
+            >
+              📋 Orders
+            </button>
+
+            {/* User Profile Dropdown */}
+            <div style={styles.userContainer} ref={dropdownRef}>
+              <div
+                style={styles.userBadge}
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+              >
+                {user.name[0].toUpperCase()}
+              </div>
+              {userDropdownOpen && (
+                <div style={styles.userDropdown}>
+                  <div style={styles.arrow}></div>
+                  <div style={styles.userInfoRow}>
+                    <strong>Name:</strong> {user.name}
+                  </div>
+                  <div style={styles.userInfoRow}>
+                    <strong>Shop:</strong> {user.shopName || "N/A"}
+                  </div>
+                  <div style={styles.userInfoRow}>
+                    <strong>Hostel:</strong> {user.hostelBlock || "N/A"} - {user.roomNumber || "N/A"}
+                  </div>
+                  <button style={styles.logoutButton} onClick={handleLogout}>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Hamburger Toggle - Seller Mobile */}
+          {isMobile && (
+            <button
+              style={styles.hamburger}
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              <i data-feather={mobileOpen ? "x" : "menu"}></i>
+            </button>
+          )}
+        </div>
+
+        {/* Mobile Menu - Seller */}
+        {isMobile && (
+          <div
+            style={{
+              ...styles.mobileMenu,
+              maxHeight: mobileOpen ? "400px" : "0",
+              opacity: mobileOpen ? 1 : 0,
+            }}
+          >
+            <NavItem
+              to="/seller"
+              label="📊 Dashboard"
+              active={location.pathname === "/seller"}
+              isMobile
+              onClick={() => setMobileOpen(false)}
+            />
+            
+            <div style={styles.mobileQuickActions}>
+              <div style={styles.mobileQuickTitle}>Quick Actions</div>
+              <button
+                onClick={() => {
+                  navigate("/seller");
+                  setMobileOpen(false);
+                  setTimeout(() => {
+                    const listingsTab = document.querySelector('[data-tab="listings"]');
+                    if (listingsTab) listingsTab.click();
+                  }, 100);
+                }}
+                style={styles.mobileActionBtn}
+              >
+                📦 My Listings
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/seller");
+                  setMobileOpen(false);
+                  setTimeout(() => {
+                    const ordersTab = document.querySelector('[data-tab="orders"]');
+                    if (ordersTab) ordersTab.click();
+                  }, 100);
+                }}
+                style={styles.mobileActionBtn}
+              >
+                📋 My Orders
+              </button>
+            </div>
+
+            <div style={styles.mobileUserInfo}>
+              <div style={styles.mobileUserName}>{user.name}</div>
+              <div style={styles.mobileUserRole}>Seller Account</div>
+              <div style={styles.mobileUserMeta}>
+                {user.shopName && <div>Shop: {user.shopName}</div>}
+                {user.hostelBlock && <div>Hostel: {user.hostelBlock} - {user.roomNumber}</div>}
+              </div>
+            </div>
+            <Link
+              to="/"
+              onClick={handleLogout}
+              style={styles.mobileLinkDanger}
+            >
+              🚪 Logout
+            </Link>
+          </div>
+        )}
+      </nav>
+    );
+  }
+
+  // ==================== USER/ADMIN NAVBAR ====================
   return (
     <nav style={styles.navbar}>
       <div style={styles.navContainer}>
@@ -96,7 +257,13 @@ export default function Navbar() {
               to="/my-orders"
               label="My Orders"
               active={location.pathname === "/my-orders"}
-           
+            />
+          )}
+          {user && user.role === "seller" && (
+            <NavItem
+              to="/seller"
+              label="Dashboard"
+              active={location.pathname === "/seller"}
             />
           )}
 
@@ -199,6 +366,15 @@ export default function Navbar() {
               to="/my-orders"
               label="My Orders"
               active={location.pathname === "/my-orders"}
+              isMobile
+              onClick={() => setMobileOpen(false)}
+            />
+          )}
+          {user && user.role === "seller" && (
+            <NavItem
+              to="/seller"
+              label="Dashboard"
+              active={location.pathname === "/seller"}
               isMobile
               onClick={() => setMobileOpen(false)}
             />
@@ -442,6 +618,90 @@ const styles = {
     borderRadius: "8px",
     margin: "4px 12px",
     background: "#f3f4f6",
+  },
+  mobileLinkDanger: {
+    padding: "8px 12px",
+    textDecoration: "none",
+    color: "#fff",
+    borderRadius: "8px",
+    margin: "4px 12px",
+    background: "#ef4444",
+    fontWeight: 600,
+  },
+  mobileUserInfo: {
+    padding: "12px",
+    margin: "4px 12px",
+    background: "#f9fafb",
+    borderRadius: "8px",
+    borderLeft: "4px solid #6366f1",
+  },
+  mobileUserName: {
+    fontSize: "16px",
+    fontWeight: 700,
+    color: "#111827",
+    marginBottom: "4px",
+  },
+  mobileUserRole: {
+    fontSize: "13px",
+    color: "#6b7280",
+    marginBottom: "4px",
+  },
+  mobileUserMeta: {
+    fontSize: "12px",
+    color: "#9ca3af",
+    marginTop: "8px",
+    paddingTop: "8px",
+    borderTop: "1px solid #e5e7eb",
+  },
+  navDivider: {
+    width: "1px",
+    height: "24px",
+    background: "#e5e7eb",
+  },
+  navLabel: {
+    fontSize: "13px",
+    color: "#6b7280",
+    fontWeight: 600,
+  },
+  quickActionBtn: {
+    padding: "8px 16px",
+    background: "transparent",
+    border: "2px solid #e5e7eb",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#374151",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  },
+  mobileQuickActions: {
+    padding: "12px",
+    margin: "8px 12px",
+    background: "#f9fafb",
+    borderRadius: "8px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  mobileQuickTitle: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#6b7280",
+    marginBottom: "4px",
+  },
+  mobileActionBtn: {
+    padding: "10px",
+    background: "#fff",
+    border: "2px solid #e5e7eb",
+    borderRadius: "8px",
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "#374151",
+    cursor: "pointer",
+    textAlign: "left",
   },
   searchForm: { display: "flex", gap: "4px" },
   searchInput: {

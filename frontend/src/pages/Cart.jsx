@@ -1,24 +1,41 @@
 import React, { useContext, useState } from 'react'
 import { CartContext } from '../context/CartProvider'
 import { AuthContext } from '../context/AuthProvider'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { createRazorpayOrder, loadRazorpay, completePayment } from '../services/payment'
-import Button from '../components/Button'
+import toast from 'react-hot-toast'
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clear } = useContext(CartContext)
   const { user } = useContext(AuthContext)
+  const navigate = useNavigate()
   const [placing, setPlacing] = useState(false)
-  const [message, setMessage] = useState(null)
 
-  const total = items.reduce((s, i) => s + i.price * i.quantity, 0)
+  const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
+  const deliveryFee = items.length > 0 ? 40 : 0
+  const tax = subtotal * 0.05 // 5% tax
+  const total = subtotal + deliveryFee + tax
+
+  const handleQuantityChange = (sellerProductId, newQty) => {
+    if (newQty < 1) {
+      removeItem(sellerProductId)
+    } else {
+      updateQuantity(sellerProductId, newQty)
+    }
+  }
 
   const placeOrders = async () => {
-    if (!user) return alert('Please login to place orders')
+    if (!user) {
+      toast.error('Please login to place orders')
+      navigate('/login')
+      return
+    }
     if (items.length === 0) return
+    
     setPlacing(true)
     try {
-      const amount = total
+      const amount = Math.round(total)
 
       // 1) create razorpay order on backend
       const rzOrder = await createRazorpayOrder(amount)
@@ -34,7 +51,6 @@ export default function Cart() {
         description: "Order payment",
         order_id: rzOrder.id,
         handler: async function (response) {
-          // response: razorpay_payment_id, razorpay_order_id, razorpay_signature
           try {
             const res = await completePayment({
               razorpay_order_id: response.razorpay_order_id,
@@ -44,65 +60,429 @@ export default function Cart() {
             });
             if (res.ok) {
               clear();
-              setMessage("Payment successful and orders created");
+              toast.success("Payment successful! Orders placed.");
+              navigate('/my-orders');
             } else {
-              setMessage("Payment verified but order creation failed");
+              toast.error("Payment verified but order creation failed");
             }
           } catch (err) {
-            setMessage(
-              err.response?.data?.message || "Payment verification failed"
-            );
+            toast.error(err.response?.data?.message || "Payment verification failed");
           }
         },
         prefill: {
           name: user?.name,
           email: user?.email,
         },
-        theme: { color: "#4f46e5" },
+        theme: { color: "#6366f1" },
       };
 
       const rzp = new window.Razorpay(options)
       rzp.open()
     } catch (err) {
-      setMessage(err.message || 'Payment initiation failed')
+      toast.error(err.message || 'Payment initiation failed')
     } finally {
       setPlacing(false)
     }
   }
 
   return (
-    <div className="container">
-      <h2 style={{fontSize:22,fontWeight:700}}>Your Cart</h2>
-      {items.length === 0 ? (
-        <p style={{marginTop:12,color:'#6b7280'}}>Your cart is empty.</p>
-      ) : (
-        <div style={{marginTop:12,background:'#fff',padding:14,borderRadius:8}}>
-          <ul>
-            {items.map(i => (
-              <li key={i.sellerProduct_id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:10,borderBottom:'1px solid #f1f5f9'}}>
-                <div>
-                  <div style={{fontWeight:700}}>{i.name}</div>
-                  <div style={{color:'#6b7280'}}>₹{i.price} each</div>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <input type="number" value={i.quantity} onChange={e => updateQuantity(i.sellerProduct_id, Number(e.target.value))} style={{width:80,padding:6,borderRadius:6,border:'1px solid #e5e7eb'}} />
-                  <div style={{fontWeight:800}}>₹{i.price * i.quantity}</div>
-                  <button onClick={() => removeItem(i.sellerProduct_id)} style={{background:'transparent',border:'none',color:'#ef4444'}}>Remove</button>
-                </div>
-              </li>
-            ))}
-          </ul>
+    <div style={{ background: "#f9fafb", minHeight: "100vh", padding: "32px 16px" }}>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: 32 }}>
+          <h1
+            style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: "#111827",
+              margin: 0,
+              marginBottom: 8,
+            }}
+          >
+            Shopping Cart
+          </h1>
+          <p style={{ color: "#6b7280", margin: 0, fontSize: 15 }}>
+            {items.length} {items.length === 1 ? "item" : "items"} in your cart
+          </p>
+        </div>
 
-          <div style={{marginTop:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div style={{fontSize:18,fontWeight:800}}>Total: ₹{total}</div>
-            <div>
-              <button onClick={placeOrders} disabled={placing} style={{padding:'10px 14px',background:'#ef6b6b',color:'#fff',border:'none',borderRadius:8}}>{placing ? 'Processing...' : 'Pay Now'}</button>
+        {items.length === 0 ? (
+          // Empty Cart State
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 12,
+              padding: "64px 32px",
+              textAlign: "center",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+            }}
+          >
+            <div style={{ fontSize: 64, marginBottom: 16 }}>🛒</div>
+            <h2
+              style={{
+                fontSize: 24,
+                fontWeight: 600,
+                color: "#374151",
+                marginBottom: 8,
+              }}
+            >
+              Your cart is empty
+            </h2>
+            <p style={{ color: "#6b7280", marginBottom: 24, fontSize: 15 }}>
+              Add some delicious items to get started!
+            </p>
+            <button
+              onClick={() => navigate("/products")}
+              style={{
+                padding: "12px 24px",
+                background: "#6366f1",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: "pointer",
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
+            >
+              Browse Products
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 400px",
+              gap: 24,
+            }}
+          >
+            {/* Cart Items */}
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 12,
+                padding: 24,
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 18,
+                  fontWeight: 600,
+                  color: "#111827",
+                  marginBottom: 20,
+                }}
+              >
+                Cart Items
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {items.map((item) => (
+                  <div
+                    key={item.sellerProduct_id}
+                    style={{
+                      display: "flex",
+                      gap: 16,
+                      padding: 16,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 10,
+                      background: "#fafafa",
+                      transition: "border-color 0.2s",
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.borderColor = "#d1d5db")
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.borderColor = "#e5e7eb")
+                    }
+                  >
+                    {/* Product Image */}
+                    <div
+                      style={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: 8,
+                        overflow: "hidden",
+                        background: "#f3f4f6",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <img
+                        src={
+                          item.image
+                            ? `http://localhost:5001${item.image}`
+                            : "https://via.placeholder.com/100"
+                        }
+                        alt={item.name}
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </div>
+
+                    {/* Product Info */}
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                      <h3
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 600,
+                          color: "#111827",
+                          margin: "0 0 6px",
+                        }}
+                      >
+                        {item.name}
+                      </h3>
+                      <p
+                        style={{
+                          fontSize: 14,
+                          color: "#6b7280",
+                          margin: "0 0 12px",
+                        }}
+                      >
+                        ₹{item.price} each
+                      </p>
+
+                      {/* Quantity Controls */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          marginTop: "auto",
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.sellerProduct_id,
+                                item.quantity - 1
+                              )
+                            }
+                            style={{
+                              width: 32,
+                              height: 32,
+                              border: "1px solid #d1d5db",
+                              borderRadius: 6,
+                              background: "#fff",
+                              fontSize: 16,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              color: "#374151",
+                              transition: "all 0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "#6366f1";
+                              e.currentTarget.style.color = "#6366f1";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "#d1d5db";
+                              e.currentTarget.style.color = "#374151";
+                            }}
+                          >
+                            −
+                          </button>
+                          <span
+                            style={{
+                              fontSize: 15,
+                              fontWeight: 600,
+                              color: "#111827",
+                              minWidth: 30,
+                              textAlign: "center",
+                            }}
+                          >
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              handleQuantityChange(
+                                item.sellerProduct_id,
+                                item.quantity + 1
+                              )
+                            }
+                            style={{
+                              width: 32,
+                              height: 32,
+                              border: "1px solid #d1d5db",
+                              borderRadius: 6,
+                              background: "#fff",
+                              fontSize: 16,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              color: "#374151",
+                              transition: "all 0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.borderColor = "#6366f1";
+                              e.currentTarget.style.color = "#6366f1";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.borderColor = "#d1d5db";
+                              e.currentTarget.style.color = "#374151";
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => removeItem(item.sellerProduct_id)}
+                          style={{
+                            marginLeft: "auto",
+                            padding: "6px 12px",
+                            background: "transparent",
+                            border: "1px solid #fecaca",
+                            borderRadius: 6,
+                            color: "#dc2626",
+                            fontSize: 13,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#fef2f2";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Item Total */}
+                    <div
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 700,
+                        color: "#111827",
+                        flexShrink: 0,
+                      }}
+                    >
+                      ₹{item.price * item.quantity}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div style={{ height: "fit-content" }}>
+              <div
+                style={{
+                  background: "#fff",
+                  borderRadius: 12,
+                  padding: 24,
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                  position: "sticky",
+                  top: 24,
+                }}
+              >
+                <h2
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: "#111827",
+                    marginBottom: 20,
+                  }}
+                >
+                  Order Summary
+                </h2>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#6b7280", fontSize: 15 }}>
+                      Subtotal ({items.length} items)
+                    </span>
+                    <span style={{ fontWeight: 600, color: "#374151" }}>
+                      ₹{subtotal.toFixed(2)}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#6b7280", fontSize: 15 }}>
+                      Delivery Fee
+                    </span>
+                    <span style={{ fontWeight: 600, color: "#374151" }}>
+                      ₹{deliveryFee.toFixed(2)}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "#6b7280", fontSize: 15 }}>
+                      Tax (5%)
+                    </span>
+                    <span style={{ fontWeight: 600, color: "#374151" }}>
+                      ₹{tax.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      borderTop: "2px solid #e5e7eb",
+                      marginTop: 8,
+                      paddingTop: 16,
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <span style={{ fontSize: 18, fontWeight: 700, color: "#111827" }}>
+                      Total
+                    </span>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: "#6366f1" }}>
+                      ₹{total.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={placeOrders}
+                  disabled={placing}
+                  style={{
+                    width: "100%",
+                    marginTop: 24,
+                    padding: "14px",
+                    background: placing ? "#9ca3af" : "#6366f1",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: 8,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    cursor: placing ? "not-allowed" : "pointer",
+                    transition: "background 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!placing) e.currentTarget.style.background = "#4f46e5";
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!placing) e.currentTarget.style.background = "#6366f1";
+                  }}
+                >
+                  {placing ? "Processing..." : "Proceed to Payment"}
+                </button>
+
+                {!user && (
+                  <div
+                    style={{
+                      marginTop: 16,
+                      padding: 12,
+                      background: "#fef3c7",
+                      border: "1px solid #fbbf24",
+                      borderRadius: 8,
+                      fontSize: 13,
+                      color: "#92400e",
+                      textAlign: "center",
+                    }}
+                  >
+                    Please login to place orders
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-
-          {message && <div style={{marginTop:12,color:'#16a34a'}}>{message}</div>}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

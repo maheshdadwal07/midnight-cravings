@@ -1,8 +1,11 @@
-import React from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import React, { useContext } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthProvider";
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useContext(AuthContext);
 
   const navItems = [
     { path: "/admin/users", label: "Users" },
@@ -11,24 +14,51 @@ export default function AdminLayout() {
     { path: "/admin/orders", label: "Orders" },
   ];
 
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
   return (
     <div className="admin-container">
       {/* Sidebar */}
       <aside className="sidebar">
-        <h2 className="logo">Admin Panel</h2>
-        <nav>
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`nav-link ${
-                location.pathname === item.path ? "active" : ""
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="sidebar-top">
+          <h2 className="logo">Admin Panel</h2>
+
+          {/* Admin Info */}
+          {user && user.role === "admin" && (
+            <div className="admin-info">
+              <div className="admin-avatar">
+                {user.name ? user.name[0].toUpperCase() : "A"}
+              </div>
+              <div className="admin-details">
+                <div className="admin-name">{user.name}</div>
+                <div className="admin-email">{user.email}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation */}
+          <nav>
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-link ${
+                  location.pathname === item.path ? "active" : ""
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {/* Logout Button */}
+        <button className="logout-btn" onClick={handleLogout}>
+          Logout
+        </button>
       </aside>
 
       {/* Main Content */}
@@ -49,38 +79,87 @@ export default function AdminLayout() {
 
         /* Sidebar */
         .sidebar {
-          width: 240px;
+          width: 250px;
           background: #111827;
           color: white;
-          padding: 32px 24px;
+          padding: 28px 20px;
           display: flex;
           flex-direction: column;
-          justify-content: start;
+          justify-content: space-between;
           box-shadow: 2px 0 12px rgba(0,0,0,0.1);
           position: sticky;
           top: 0;
           height: 100vh;
         }
 
+        /* Stack top section neatly */
+        .sidebar-top {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
         .logo {
           font-size: 24px;
           font-weight: 700;
-          margin-bottom: 40px;
           color: #f9fafb;
           text-align: center;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+
+        /* Admin Info */
+        .admin-info {
+          display: flex;
+          align-items: center;
+          background: #1f2937;
+          padding: 12px 14px;
+          border-radius: 10px;
+          gap: 12px;
+        }
+
+        .admin-avatar {
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-weight: 600;
+          font-size: 1rem;
+          flex-shrink: 0;
+        }
+
+        .admin-details {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.2;
+        }
+
+        .admin-name {
+          font-weight: 600;
+          color: #fff;
+          font-size: 0.95rem;
+        }
+
+        .admin-email {
+          font-size: 0.8rem;
+          color: #9ca3af;
         }
 
         nav {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
+          margin-top: 12px;
         }
 
         .nav-link {
           display: block;
           color: #d1d5db;
-          padding: 12px 16px;
+          padding: 10px 14px;
           border-radius: 8px;
           font-weight: 500;
           text-decoration: none;
@@ -98,6 +177,27 @@ export default function AdminLayout() {
           font-weight: 600;
         }
 
+        /* Logout Button */
+        .logout-btn {
+          background: #ef4444;
+          color: white;
+          border: none;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          margin-top: 16px;
+        }
+
+        .logout-btn:hover {
+          background: #dc2626;
+        }
+
+        .logout-btn:active {
+          transform: scale(0.98);
+        }
+
         /* Main content */
         .content {
           flex: 1;
@@ -107,7 +207,6 @@ export default function AdminLayout() {
           transition: all 0.3s ease;
         }
 
-        /* Shadow card effect for each content section */
         .content > * {
           background: white;
           padding: 24px;
@@ -128,18 +227,7 @@ export default function AdminLayout() {
           background: #f3f4f6;
         }
 
-        /* Responsive adjustments */
-        @media (max-width: 1024px) {
-          .sidebar {
-            width: 200px;
-            padding: 24px 16px;
-          }
-          .logo {
-            font-size: 20px;
-            margin-bottom: 32px;
-          }
-        }
-
+        /* Responsive */
         @media (max-width: 768px) {
           .admin-container {
             flex-direction: column;
@@ -151,8 +239,9 @@ export default function AdminLayout() {
             box-shadow: none;
             padding: 16px;
           }
-          .nav-link {
-            padding: 10px 12px;
+          .logout-btn {
+            width: 100%;
+            margin-top: 16px;
           }
           .content {
             padding: 16px;

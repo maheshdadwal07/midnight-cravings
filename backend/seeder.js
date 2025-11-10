@@ -34,6 +34,11 @@ const seedData = async () => {
       email: "seller@example.com",
       passwordHash: sellerPassword,
       role: "seller",
+      sellerStatus: "approved", // ✅ Set seller as approved
+      hostelBlock: "Hostel A",
+      roomNumber: "101",
+      upiId: "seller@paytm",
+      shopName: "Midnight Bites",
     });
 
     const user = await User.create({

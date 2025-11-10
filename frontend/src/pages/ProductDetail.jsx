@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { AuthContext } from "../context/AuthProvider";
 import { CartContext } from "../context/CartProvider";
+import ProductCard from "../components/ProductCard";
 import toast from "react-hot-toast";
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [sellers, setSellers] = useState([]);
+  const [similarProducts, setSimilarProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
   const { addItem } = useContext(CartContext);
@@ -31,12 +34,25 @@ export default function ProductDetail() {
         setProduct(found);
         setSellers(sRes.data || []);
         if (sRes.data.length) setSelectedSeller(sRes.data[0]);
-        if (found)
+        if (found) {
           setMainImage(
             found.image
-              ? `http://localhost:5000${found.image}`
+              ? `http://localhost:5001${found.image}`
               : "https://via.placeholder.com/500"
           );
+          
+          // Get similar products (same category, exclude current product)
+          const similar = pRes.data
+            .filter((p) => {
+              const pId = p._id || p.id;
+              const sellerCount = p.sellerCount || (p.sellers || []).length || 0;
+              return pId !== id && 
+                     p.category === found.category && 
+                     sellerCount > 0;
+            })
+            .slice(0, 4);
+          setSimilarProducts(similar);
+        }
       } catch (err) {
         console.error("Failed to load product or sellers", err);
       } finally {
@@ -75,245 +91,443 @@ export default function ProductDetail() {
   };
 
   return (
-    <div className="container">
-      <div className="product-grid">
-        {/* Image Section */}
-        <div className="image-section">
-          <div className="image-wrapper">
-            <img src={mainImage} alt={product.name} />
-          </div>
-          {product.images && product.images.length > 1 && (
-            <div className="thumbnails">
-              {product.images.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={`http://localhost:5000${img}`}
-                  alt={`thumb-${idx}`}
-                  onClick={() => setMainImage(`http://localhost:5000${img}`)}
-                  className={
-                    mainImage === `http://localhost:5000${img}`
-                      ? "active-thumb"
-                      : ""
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Info & Purchase Section */}
-        <div className="info-section">
-          <h1>{product.name}</h1>
-          <p className="category">{product.category}</p>
-          <p className="description">
-            {product.description ||
-              "Delicious product available from multiple sellers."}
-          </p>
-
-          {/* Seller Selection Buttons */}
-          <div className="seller-buttons">
-            {sellers.length === 0 ? (
-              <p>No sellers available</p>
-            ) : (
-              sellers.map((s) => (
-                <button
-                  key={s._id}
-                  className={
-                    selectedSeller?._id === s._id
-                      ? "seller-btn active"
-                      : "seller-btn"
-                  }
-                  onClick={() => setSelectedSeller(s)}
-                >
-                  {s.seller_id?.name || "Seller"} — ₹{s.price}
-                </button>
-              ))
-            )}
-          </div>
-
-          {/* Quantity Selector */}
-          <div className="quantity-selector">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="qty-btn"
-            >
-              -
-            </button>
-            <input type="number" value={quantity} readOnly />
-            <button
-              onClick={() =>
-                setQuantity((q) =>
-                  selectedSeller ? Math.min(selectedSeller.stock, q + 1) : q + 1
-                )
-              }
-              className="qty-btn"
-            >
-              +
-            </button>
-          </div>
-
-          <button className="add-cart-btn" onClick={handleAddToCart}>
-            Add to Cart
-          </button>
-
-          {!user && <p className="login-note">Please login to place orders.</p>}
+    <div style={{ background: "#f9fafb", minHeight: "100vh", paddingBottom: 60 }}>
+      {/* Breadcrumb */}
+      <div
+        style={{
+          background: "#fff",
+          borderBottom: "1px solid #e5e7eb",
+          padding: "12px 0",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1200,
+            margin: "0 auto",
+            padding: "0 24px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 14,
+            color: "#6b7280",
+          }}
+        >
+          <Link to="/" style={{ color: "#6366f1", textDecoration: "none" }}>
+            Home
+          </Link>
+          <span>/</span>
+          <Link to="/products" style={{ color: "#6366f1", textDecoration: "none" }}>
+            Products
+          </Link>
+          <span>/</span>
+          <span style={{ color: "#374151" }}>{product.name}</span>
         </div>
       </div>
 
-      {/* Styles */}
-      <style jsx>{`
-        .container {
-          padding: 24px;
-          max-width: 1200px;
-          margin: auto;
-        }
-        .product-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 32px;
-          margin-top: 24px;
-        }
-        @media (max-width: 900px) {
-          .product-grid {
-            grid-template-columns: 1fr;
-            gap: 16px;
-          }
-        }
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "32px 24px" }}>
+        {/* Main Product Section */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 48,
+            background: "#fff",
+            borderRadius: 16,
+            padding: 32,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+            marginBottom: 48,
+          }}
+        >
+          {/* Image Section */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div
+              style={{
+                width: "100%",
+                aspectRatio: "1",
+                overflow: "hidden",
+                borderRadius: 16,
+                background: "#f3f4f6",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              }}
+            >
+              <img
+                src={mainImage}
+                alt={product.name}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+            {product.images && product.images.length > 1 && (
+              <div style={{ display: "flex", gap: 12 }}>
+                {product.images.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={`http://localhost:5001${img}`}
+                    alt={`thumb-${idx}`}
+                    onClick={() => setMainImage(`http://localhost:5001${img}`)}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      border:
+                        mainImage === `http://localhost:5001${img}`
+                          ? "3px solid #6366f1"
+                          : "2px solid #e5e7eb",
+                      transition: "all 0.2s",
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
 
-        .image-section {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .image-wrapper {
-          width: 100%;
-          aspect-ratio: 4/3;
-          overflow: hidden;
-          border-radius: 16px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background: #f9fafb;
-          transition: transform 0.3s;
-        }
-        .image-wrapper:hover {
-          transform: scale(1.02);
-        }
-        .image-wrapper img {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          transition: transform 0.3s;
-        }
+          {/* Info & Purchase Section */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {/* Title */}
+            <div>
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "4px 12px",
+                  background: "#ede9fe",
+                  color: "#6366f1",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  textTransform: "capitalize",
+                  marginBottom: 12,
+                }}
+              >
+                {product.category}
+              </div>
+              <h1
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  color: "#1f2937",
+                  margin: "0 0 8px",
+                  lineHeight: 1.2,
+                }}
+              >
+                {product.name}
+              </h1>
+            </div>
 
-        .thumbnails {
-          display: flex;
-          gap: 10px;
-          margin-top: 8px;
-        }
-        .thumbnails img {
-          width: 60px;
-          height: 60px;
-          object-fit: cover;
-          border-radius: 8px;
-          cursor: pointer;
-          border: 2px solid transparent;
-          transition: 0.2s;
-        }
-        .thumbnails img.active-thumb {
-          border-color: #6366f1;
-        }
+            {/* Description */}
+            <p
+              style={{
+                color: "#6b7280",
+                lineHeight: 1.7,
+                fontSize: 15,
+                margin: 0,
+              }}
+            >
+              {product.description ||
+                "Delicious product available from multiple sellers. Order now and enjoy fast delivery!"}
+            </p>
 
-        .info-section {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .info-section h1 {
-          font-size: 32px;
-          font-weight: 800;
-        }
-        .category {
-          color: #6366f1;
-          font-weight: 700;
-        }
-        .description {
-          color: #374151;
-          line-height: 1.6;
-        }
+            {/* Seller Selection */}
+            <div>
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  color: "#374151",
+                  marginBottom: 12,
+                }}
+              >
+                Select Seller
+              </h3>
+              {sellers.length === 0 ? (
+                <div
+                  style={{
+                    padding: 16,
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 8,
+                    color: "#dc2626",
+                    fontSize: 14,
+                  }}
+                >
+                  ⚠️ No sellers available for this product
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {sellers.map((s) => (
+                    <div
+                      key={s._id}
+                      onClick={() => setSelectedSeller(s)}
+                      style={{
+                        padding: 16,
+                        border:
+                          selectedSeller?._id === s._id
+                            ? "2px solid #6366f1"
+                            : "2px solid #e5e7eb",
+                        borderRadius: 12,
+                        background:
+                          selectedSeller?._id === s._id ? "#f5f3ff" : "#fff",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedSeller?._id !== s._id) {
+                          e.currentTarget.style.borderColor = "#c7d2fe";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedSeller?._id !== s._id) {
+                          e.currentTarget.style.borderColor = "#e5e7eb";
+                        }
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: "#374151",
+                            fontSize: 15,
+                          }}
+                        >
+                          {s.seller_id?.name || "Seller"}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
+                          Stock: {s.stock} units
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 20,
+                          fontWeight: 700,
+                          color: "#6366f1",
+                        }}
+                      >
+                        ₹{s.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-        .seller-buttons {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 12px;
-        }
-        .seller-btn {
-          padding: 8px 16px;
-          border: 2px solid #6366f1;
-          background: white;
-          color: #6366f1;
-          font-weight: 600;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-        .seller-btn.active,
-        .seller-btn:hover {
-          background: #6366f1;
-          color: white;
-        }
+            {/* Quantity & Add to Cart */}
+            {sellers.length > 0 && (
+              <>
+                <div>
+                  <h3
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 700,
+                      color: "#374151",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Quantity
+                  </h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        border: "2px solid #e5e7eb",
+                        borderRadius: 8,
+                        background: "#fff",
+                        fontSize: 18,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        color: "#374151",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#6366f1";
+                        e.currentTarget.style.color = "#6366f1";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#e5e7eb";
+                        e.currentTarget.style.color = "#374151";
+                      }}
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      value={quantity}
+                      readOnly
+                      style={{
+                        width: 80,
+                        height: 40,
+                        textAlign: "center",
+                        border: "2px solid #e5e7eb",
+                        borderRadius: 8,
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: "#374151",
+                      }}
+                    />
+                    <button
+                      onClick={() =>
+                        setQuantity((q) =>
+                          selectedSeller
+                            ? Math.min(selectedSeller.stock, q + 1)
+                            : q + 1
+                        )
+                      }
+                      style={{
+                        width: 40,
+                        height: 40,
+                        border: "2px solid #e5e7eb",
+                        borderRadius: 8,
+                        background: "#fff",
+                        fontSize: 18,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        color: "#374151",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#6366f1";
+                        e.currentTarget.style.color = "#6366f1";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#e5e7eb";
+                        e.currentTarget.style.color = "#374151";
+                      }}
+                    >
+                      +
+                    </button>
+                    <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>
+                        Total Price
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 24,
+                          fontWeight: 700,
+                          color: "#6366f1",
+                        }}
+                      >
+                        ₹{selectedSeller ? selectedSeller.price * quantity : 0}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-        .quantity-selector {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-top: 12px;
-        }
-        .quantity-selector input {
-          width: 60px;
-          text-align: center;
-          border-radius: 8px;
-          border: 1px solid #e5e7eb;
-          padding: 6px;
-          font-size: 16px;
-        }
-        .qty-btn {
-          padding: 6px 12px;
-          border: none;
-          border-radius: 8px;
-          background: #fbbf24;
-          font-weight: 700;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-        .qty-btn:hover {
-          background: #f59e0b;
-        }
+                <button
+                  onClick={handleAddToCart}
+                  style={{
+                    padding: "16px 32px",
+                    background: "#6366f1",
+                    color: "#fff",
+                    fontSize: 16,
+                    fontWeight: 700,
+                    borderRadius: 12,
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                    boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "#4f46e5";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 8px 20px rgba(99, 102, 241, 0.4)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "#6366f1";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(99, 102, 241, 0.3)";
+                  }}
+                >
+                  🛒 Add to Cart
+                </button>
+              </>
+            )}
 
-        .add-cart-btn {
-          margin-top: 16px;
-          padding: 14px;
-          background: #ef4444;
-          color: white;
-          font-weight: 700;
-          border-radius: 12px;
-          border: none;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-        .add-cart-btn:hover {
-          background: #dc2626;
-          transform: scale(1.02);
-        }
+            {!user && (
+              <div
+                style={{
+                  padding: 12,
+                  background: "#fef3c7",
+                  border: "1px solid #fbbf24",
+                  borderRadius: 8,
+                  color: "#92400e",
+                  fontSize: 14,
+                  textAlign: "center",
+                }}
+              >
+                Please login to place orders
+              </div>
+            )}
+          </div>
+        </div>
 
-        .login-note {
-          font-size: 14px;
-          color: #6b7280;
-          margin-top: 6px;
-        }
-      `}</style>
+        {/* Similar Products Section */}
+        {similarProducts.length > 0 && (
+          <div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 24,
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "#1f2937",
+                  margin: 0,
+                }}
+              >
+                Similar Products
+              </h2>
+              <Link
+                to={`/products?category=${product.category}`}
+                style={{
+                  color: "#6366f1",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                View All →
+              </Link>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: 20,
+              }}
+            >
+              {similarProducts.map((p) => (
+                <ProductCard
+                  key={p._id || p.id}
+                  product={p}
+                  onClick={() => {
+                    navigate(`/products/${p._id || p.id}`);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }

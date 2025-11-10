@@ -12,22 +12,15 @@ export default function Home() {
   const [productsByCategory, setProductsByCategory] = useState({});
   const [loading, setLoading] = useState(true);
 
-
   // Define categories to display
   const categories = [
-    { name: "Snacks", icon: "🍿" },
-    { name: "Beverages", icon: "🥤" },
+    { name: "Snacks", icon: "�" },
+    { name: "Beverages", icon: "�" },
     { name: "Biscuits", icon: "🍪" },
-    { name: "Chocolates", icon: "🍫" },
-    { name: "Chips", icon: "🥔" },
-    { name: "Noodles", icon: "🍜" },
-    { name: "Desserts", icon: "🍰" },
-    { name: "Ice Cream", icon: "🍦" },
-    { name: "Sandwiches", icon: "🥪" },
-    { name: "Fast Food", icon: "🍔" },
-    { name: "Healthy", icon: "🥗" },
-    { name: "Dairy", icon: "🥛" },
+    { name: "Chocolates", icon: "�" },
+    { name: "Chips", icon: "�" },
   ];
+
   // Redirect seller/admin to their respective dashboards
   useEffect(() => {
     if (user && user.role === "seller") {
@@ -1191,15 +1184,14 @@ export default function Home() {
 
         /* FEATURED PRODUCTS */
         .featured-products {
-          padding: 3rem 2rem;
-          max-width: 1200px;
-          margin: 0 auto;
+          padding: 4rem 2rem;
+          text-align: center;
         }
         .featured-products h2 {
-          font-size: 1.75rem;
-          margin-bottom: 0;
+          font-size: 2rem;
+          margin-bottom: 2rem;
           color: #111827;
-          font-weight: 700;
+          font-weight: 800;
         }
         .product-grid {
           display: grid;

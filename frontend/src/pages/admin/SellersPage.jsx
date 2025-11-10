@@ -7,6 +7,8 @@ export default function SellersPage() {
   const [loading, setLoading] = useState(true);
   const [imageModal, setImageModal] = useState(false);
   const [currentImage, setCurrentImage] = useState("");
+  const [profileModal, setProfileModal] = useState(false);
+  const [currentSeller, setCurrentSeller] = useState(null);
 
   useEffect(() => {
     fetchSellers();
@@ -59,6 +61,16 @@ export default function SellersPage() {
     }
   };
 
+  const handleViewProfile = async (id) => {
+    try {
+      const res = await api.get(`/api/admin/seller/${id}`);
+      setCurrentSeller(res.data);
+      setProfileModal(true);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to fetch profile");
+    }
+  };
+
   if (loading) return <div className="container">Loading sellers...</div>;
 
   return (
@@ -74,7 +86,7 @@ export default function SellersPage() {
               s.sellerStatus?.toLowerCase().replace(/\s+/g, "_") ||
               "pending_verification";
             const imageSrc = s.collegeIdUrl
-              ? `http://localhost:5000${s.collegeIdUrl}`
+              ? `http://localhost:5001${s.collegeIdUrl}`
               : "https://via.placeholder.com/150?text=No+ID";
 
             return (
@@ -134,6 +146,12 @@ export default function SellersPage() {
                       {s.banned ? "Unban" : "Ban"}
                     </button>
                   )}
+                  <button
+                    className="btn view"
+                    onClick={() => handleViewProfile(s._id)}
+                  >
+                    See Profile
+                  </button>
                 </div>
               </div>
             );
@@ -145,6 +163,42 @@ export default function SellersPage() {
       {imageModal && (
         <div className="image-modal" onClick={() => setImageModal(false)}>
           <img src={currentImage} alt="Full View" />
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      {profileModal && currentSeller && (
+        <div className="profile-modal" onClick={() => setProfileModal(false)}>
+          <div
+            className="profile-content"
+            onClick={(e) => e.stopPropagation()} // Prevent close on inner click
+          >
+            <h3>Seller Profile</h3>
+            <img
+              src={
+                currentSeller.collegeIdUrl
+                  ? `http://localhost:5001${currentSeller.collegeIdUrl}`
+                  : "https://via.placeholder.com/200?text=No+Image"
+              }
+              alt={currentSeller.name}
+              className="profile-img"
+            />
+            <div className="profile-details">
+              <p><strong>Name:</strong> {currentSeller.name}</p>
+              <p><strong>Email:</strong> {currentSeller.email}</p>
+              <p><strong>Shop Name:</strong> {currentSeller.shopName || "-"}</p>
+              <p><strong>Hostel Block:</strong> {currentSeller.hostelBlock || "-"}</p>
+              <p><strong>Room Number:</strong> {currentSeller.roomNumber || "-"}</p>
+              <p><strong>UPI ID:</strong> {currentSeller.upiId || "-"}</p>
+              <p><strong>Status:</strong> {currentSeller.sellerStatus}</p>
+              <p><strong>Banned:</strong> {currentSeller.banned ? "Yes" : "No"}</p>
+              <p><strong>Created At:</strong> {new Date(currentSeller.createdAt).toLocaleString()}</p>
+              <p><strong>Updated At:</strong> {new Date(currentSeller.updatedAt).toLocaleString()}</p>
+            </div>
+            <button className="close-btn" onClick={() => setProfileModal(false)}>
+              Close
+            </button>
+          </div>
         </div>
       )}
 
@@ -255,9 +309,11 @@ export default function SellersPage() {
         .btn.approve { background: #10b981; color: #fff; }
         .btn.reject { background: #ef4444; color: #fff; }
         .btn.ban { background: #6366f1; color: #fff; }
+        .btn.view { background: #2563eb; color: #fff; }
 
         /* Modal Styles */
-        .image-modal {
+        .image-modal,
+        .profile-modal {
           position: fixed;
           top:0;
           left:0;
@@ -268,6 +324,7 @@ export default function SellersPage() {
           align-items: center;
           justify-content: center;
           z-index: 999;
+          padding: 20px;
         }
 
         .image-modal img {
@@ -275,6 +332,48 @@ export default function SellersPage() {
           max-height: 90%;
           border-radius: 12px;
           object-fit: contain;
+        }
+
+        .profile-content {
+          background: white;
+          border-radius: 12px;
+          padding: 24px;
+          width: 100%;
+          max-width: 450px;
+          text-align: center;
+          color: #111827;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+          animation: fadeIn 0.3s ease;
+        }
+
+        .profile-img {
+          width: 100%;
+          max-height: 240px;
+          object-fit: contain;
+          border-radius: 10px;
+          margin-bottom: 16px;
+        }
+
+        .profile-details {
+          text-align: left;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .close-btn {
+          margin-top: 16px;
+          background: #ef4444;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          padding: 8px 16px;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
 
         @media (max-width: 768px) {
