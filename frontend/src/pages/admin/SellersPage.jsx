@@ -4,25 +4,68 @@ import toast from "react-hot-toast";
 
 export default function SellersPage() {
   const [sellers, setSellers] = useState([]);
+  const [filteredSellers, setFilteredSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imageModal, setImageModal] = useState(false);
   const [currentImage, setCurrentImage] = useState("");
   const [profileModal, setProfileModal] = useState(false);
   const [currentSeller, setCurrentSeller] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [banFilter, setBanFilter] = useState("");
 
   useEffect(() => {
     fetchSellers();
   }, []);
 
+  // Filter sellers when search/filter changes
+  useEffect(() => {
+    let filtered = [...sellers];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (s) =>
+          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          s.shopName?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Status filter
+    if (statusFilter) {
+      filtered = filtered.filter((s) => s.sellerStatus === statusFilter);
+    }
+
+    // Ban filter
+    if (banFilter) {
+      const isBanned = banFilter === "banned";
+      filtered = filtered.filter((s) => s.banned === isBanned);
+    }
+
+    setFilteredSellers(filtered);
+  }, [sellers, searchQuery, statusFilter, banFilter]);
+
   const fetchSellers = async () => {
     try {
       const res = await api.get("/api/admin/sellers");
       setSellers(res.data);
+      setFilteredSellers(res.data);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to fetch sellers");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Statistics
+  const stats = {
+    total: sellers.length,
+    pending: sellers.filter((s) => s.sellerStatus === "pending_verification")
+      .length,
+    approved: sellers.filter((s) => s.sellerStatus === "approved").length,
+    rejected: sellers.filter((s) => s.sellerStatus === "rejected").length,
+    banned: sellers.filter((s) => s.banned).length,
   };
 
   const handleApprove = async (id) => {
@@ -75,13 +118,91 @@ export default function SellersPage() {
 
   return (
     <div className="container">
-      <h2 className="mainTitle">Sellers Management</h2>
+      {/* Header with Stats */}
+      <div className="header">
+        <h2 className="mainTitle">Sellers Management 🏪</h2>
+        <div className="stats">
+          <div className="statCard">
+            <div className="statNumber">{stats.total}</div>
+            <div className="statLabel">Total Sellers</div>
+          </div>
+          <div className="statCard pending">
+            <div className="statNumber">{stats.pending}</div>
+            <div className="statLabel">Pending</div>
+          </div>
+          <div className="statCard approved">
+            <div className="statNumber">{stats.approved}</div>
+            <div className="statLabel">Approved</div>
+          </div>
+          <div className="statCard rejected">
+            <div className="statNumber">{stats.rejected}</div>
+            <div className="statLabel">Rejected</div>
+          </div>
+          <div className="statCard banned">
+            <div className="statNumber">{stats.banned}</div>
+            <div className="statLabel">Banned</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filters */}
+      <div className="filters">
+        <input
+          type="text"
+          placeholder="🔍 Search by name, email, or shop..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="searchInput"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="filterSelect"
+        >
+          <option value="">All Status</option>
+          <option value="pending_verification">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select
+          value={banFilter}
+          onChange={(e) => setBanFilter(e.target.value)}
+          className="filterSelect"
+        >
+          <option value="">All Sellers</option>
+          <option value="active">Active Only</option>
+          <option value="banned">Banned Only</option>
+        </select>
+        {(searchQuery || statusFilter || banFilter) && (
+          <button
+            className="clearBtn"
+            onClick={() => {
+              setSearchQuery("");
+              setStatusFilter("");
+              setBanFilter("");
+            }}
+          >
+            ✕ Clear Filters
+          </button>
+        )}
+      </div>
+
+      {/* Results Count */}
+      <div className="resultsInfo">
+        Showing {filteredSellers.length} of {sellers.length} sellers
+      </div>
 
       {sellers.length === 0 ? (
         <p>No sellers found.</p>
+      ) : filteredSellers.length === 0 ? (
+        <div className="emptyState">
+          <div className="emptyIcon">🔍</div>
+          <h3>No sellers found</h3>
+          <p>Try adjusting your search or filters</p>
+        </div>
       ) : (
         <div className="seller-grid">
-          {sellers.map((s) => {
+          {filteredSellers.map((s) => {
             const statusClass =
               s.sellerStatus?.toLowerCase().replace(/\s+/g, "_") ||
               "pending_verification";
@@ -207,35 +328,179 @@ export default function SellersPage() {
         .container {
           padding: 32px;
           font-family: 'Poppins', sans-serif;
-          max-width: 1200px;
+          max-width: 1400px;
           margin: auto;
         }
 
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 32px;
+          flex-wrap: wrap;
+          gap: 20px;
+        }
+
         .mainTitle {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 700;
+          color: #111827;
+          margin: 0;
+        }
+
+        .stats {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .statCard {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          padding: 16px 24px;
+          border-radius: 12px;
+          color: white;
+          min-width: 120px;
+          text-align: center;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .statCard.pending {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .statCard.approved {
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .statCard.rejected {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .statCard.banned {
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
+
+        .statNumber {
+          font-size: 28px;
+          font-weight: 700;
+          margin-bottom: 4px;
+        }
+
+        .statLabel {
+          font-size: 12px;
+          opacity: 0.9;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .filters {
+          display: flex;
+          gap: 12px;
           margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+
+        .searchInput {
+          flex: 1;
+          min-width: 250px;
+          padding: 12px 16px;
+          border-radius: 10px;
+          border: 2px solid #e5e7eb;
+          font-size: 15px;
+          transition: all 0.2s;
+        }
+
+        .searchInput:focus {
+          border-color: #6366f1;
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .filterSelect {
+          padding: 12px 16px;
+          border-radius: 10px;
+          border: 2px solid #e5e7eb;
+          font-size: 14px;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s;
+          min-width: 150px;
+        }
+
+        .filterSelect:focus {
+          border-color: #6366f1;
+          outline: none;
+        }
+
+        .clearBtn {
+          padding: 12px 20px;
+          background: #f3f4f6;
+          border: none;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #6b7280;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .clearBtn:hover {
+          background: #e5e7eb;
+          color: #374151;
+        }
+
+        .resultsInfo {
+          margin-bottom: 16px;
+          font-size: 14px;
+          color: #6b7280;
+          font-weight: 500;
+        }
+
+        .emptyState {
+          text-align: center;
+          padding: 60px 20px;
+          background: #f9fafb;
+          border-radius: 16px;
+          border: 2px dashed #e5e7eb;
+        }
+
+        .emptyIcon {
+          font-size: 48px;
+          margin-bottom: 16px;
+        }
+
+        .emptyState h3 {
+          font-size: 20px;
+          color: #374151;
+          margin-bottom: 8px;
+        }
+
+        .emptyState p {
+          color: #9ca3af;
+          font-size: 14px;
         }
 
         .seller-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 24px;
         }
 
         .seller-card {
           background: #fff;
-          border-radius: 12px;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+          border-radius: 16px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.06);
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          transition: transform 0.3s, box-shadow 0.3s;
+          transition: all 0.3s;
+          border: 2px solid #f3f4f6;
         }
 
         .seller-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+          border-color: #6366f1;
         }
 
         .seller-image-container {
@@ -254,130 +519,235 @@ export default function SellersPage() {
 
         .status-badge {
           position: absolute;
-          top: 8px;
-          left: 8px;
-          padding: 4px 8px;
-          border-radius: 6px;
+          top: 12px;
+          right: 12px;
+          padding: 6px 14px;
+          border-radius: 20px;
           font-weight: 600;
           color: #fff;
           font-size: 12px;
+          backdrop-filter: blur(10px);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          text-transform: capitalize;
         }
 
-        .status-badge.pending_verification { background: orange; }
-        .status-badge.approved { background: green; }
-        .status-badge.rejected { background: red; }
+        .status-badge.pending_verification { 
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        .status-badge.approved { 
+          background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .status-badge.rejected { 
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
 
         .seller-info {
-          padding: 16px;
+          padding: 20px;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
           font-size: 14px;
+          background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+          flex: 1;
+        }
+
+        .seller-info > div {
+          display: flex;
+          align-items: center;
+          color: #4b5563;
+          line-height: 1.5;
+        }
+
+        .seller-info strong {
+          color: #1f2937;
+          margin-right: 6px;
+          font-weight: 600;
         }
 
         .seller-name {
           font-weight: 700;
-          font-size: 16px;
+          font-size: 18px;
+          color: #1f2937;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .seller-email {
-          color: #6b7280;
-          font-size: 14px;
+          color: #6366f1;
+          font-size: 13px;
+          font-weight: 500;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .seller-actions {
           display: flex;
-          gap: 8px;
+          gap: 10px;
           flex-wrap: wrap;
-          padding: 0 16px 16px;
+          padding: 16px 20px;
+          background: #fff;
+          border-top: 1px solid #f3f4f6;
         }
 
         .btn {
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-size: 14px;
+          padding: 10px 18px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
           cursor: pointer;
           border: none;
-          transition: 0.2s;
+          transition: all 0.3s;
+          flex: 1;
+          min-width: fit-content;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
 
         .btn:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        .btn.approve { background: #10b981; color: #fff; }
-        .btn.reject { background: #ef4444; color: #fff; }
-        .btn.ban { background: #6366f1; color: #fff; }
-        .btn.view { background: #2563eb; color: #fff; }
+        .btn.approve { 
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: #fff;
+        }
+        .btn.reject { 
+          background: linear-gradient(135deg, #ef4444, #dc2626);
+          color: #fff;
+        }
+        .btn.ban { 
+          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          color: #fff;
+        }
+        .btn.view { 
+          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          color: #fff;
+        }
 
         /* Modal Styles */
         .image-modal,
         .profile-modal {
           position: fixed;
-          top:0;
-          left:0;
+          top: 0;
+          left: 0;
           width: 100vw;
           height: 100vh;
-          background: rgba(0,0,0,0.8);
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 999;
           padding: 20px;
+          animation: modalFadeIn 0.3s ease;
         }
 
         .image-modal img {
           max-width: 90%;
           max-height: 90%;
-          border-radius: 12px;
+          border-radius: 16px;
           object-fit: contain;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+          animation: zoomIn 0.3s ease;
         }
 
         .profile-content {
-          background: white;
-          border-radius: 12px;
-          padding: 24px;
+          background: linear-gradient(135deg, #ffffff, #f9fafb);
+          border-radius: 20px;
+          padding: 32px;
           width: 100%;
-          max-width: 450px;
+          max-width: 500px;
           text-align: center;
           color: #111827;
-          box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-          animation: fadeIn 0.3s ease;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          animation: slideUp 0.3s ease;
+          border: 1px solid #e5e7eb;
         }
 
         .profile-img {
           width: 100%;
-          max-height: 240px;
+          max-height: 280px;
           object-fit: contain;
-          border-radius: 10px;
-          margin-bottom: 16px;
+          border-radius: 16px;
+          margin-bottom: 24px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+          background: #fff;
+          padding: 8px;
         }
 
         .profile-details {
           text-align: left;
           font-size: 14px;
-          line-height: 1.5;
+          line-height: 1.8;
+          background: #fff;
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .profile-details > div {
+          padding: 8px 0;
+          border-bottom: 1px solid #f3f4f6;
+        }
+
+        .profile-details > div:last-child {
+          border-bottom: none;
         }
 
         .close-btn {
-          margin-top: 16px;
-          background: #ef4444;
+          margin-top: 24px;
+          background: linear-gradient(135deg, #ef4444, #dc2626);
           color: white;
           border: none;
-          border-radius: 8px;
-          padding: 8px 16px;
+          border-radius: 10px;
+          padding: 12px 32px;
           cursor: pointer;
           font-weight: 600;
+          font-size: 14px;
+          transition: all 0.3s;
+          box-shadow: 0 4px 12px rgba(239,68,68,0.3);
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
+        .close-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(239,68,68,0.4);
+        }
+
+        @keyframes modalFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes zoomIn {
+          from { opacity: 0; transform: scale(0.9); }
           to { opacity: 1; transform: scale(1); }
         }
 
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 768px) {
-          .seller-grid { grid-template-columns: 1fr; }
+          .seller-grid { 
+            grid-template-columns: 1fr;
+          }
+          
+          .stats-cards {
+            grid-template-columns: 1fr;
+          }
+
+          .filters {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .filters input,
+          .filters select {
+            width: 100%;
+          }
         }
       `}</style>
     </div>

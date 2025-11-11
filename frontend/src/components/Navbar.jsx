@@ -215,7 +215,123 @@ export default function Navbar() {
     );
   }
 
-  // ==================== USER/ADMIN NAVBAR ====================
+  // ==================== ADMIN NAVBAR ====================
+  if (user && user.role === "admin") {
+    return (
+      <nav style={styles.navbar}>
+        <div style={styles.navContainer}>
+          {/* Logo */}
+          <Link to="/admin/users" style={styles.logo}>
+            <i data-feather="shield"></i>
+            Midnight
+            <span style={styles.logoHighlight}>Admin</span>
+          </Link>
+
+          {/* Desktop - Admin Navigation */}
+          <div
+            style={{
+              display: isMobile ? "none" : "flex",
+              alignItems: "center",
+              gap: "1.5rem",
+            }}
+          >
+            <NavItem
+              to="/admin/users"
+              label="👥 Users"
+              active={location.pathname === "/admin/users"}
+            />
+            <NavItem
+              to="/admin/sellers"
+              label="🏪 Sellers"
+              active={location.pathname === "/admin/sellers"}
+            />
+            <NavItem
+              to="/admin/products"
+              label="🍫 Products"
+              active={location.pathname === "/admin/products"}
+            />
+            <NavItem
+              to="/admin/orders"
+              label="📦 Orders"
+              active={location.pathname === "/admin/orders"}
+            />
+          </div>
+
+          {/* User Section - Admin */}
+          <div
+            style={{
+              display: isMobile ? "none" : "flex",
+              alignItems: "center",
+              gap: "1rem",
+            }}
+          >
+            <div style={styles.userInfo}>
+              <span style={styles.userName}>{user.name}</span>
+              <span style={styles.userRole}>Admin</span>
+            </div>
+            <button onClick={handleLogout} style={styles.logoutBtn}>
+              <i data-feather="log-out"></i>
+              Logout
+            </button>
+          </div>
+
+          {/* Mobile Hamburger */}
+          <button
+            style={styles.hamburger}
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle menu"
+          >
+            <i data-feather={mobileOpen ? "x" : "menu"}></i>
+          </button>
+        </div>
+
+        {/* Mobile Menu - Admin */}
+        {mobileOpen && (
+          <div style={styles.mobileMenu}>
+            <Link
+              to="/admin/users"
+              style={styles.mobileLink}
+              onClick={() => setMobileOpen(false)}
+            >
+              👥 Users
+            </Link>
+            <Link
+              to="/admin/sellers"
+              style={styles.mobileLink}
+              onClick={() => setMobileOpen(false)}
+            >
+              🏪 Sellers
+            </Link>
+            <Link
+              to="/admin/products"
+              style={styles.mobileLink}
+              onClick={() => setMobileOpen(false)}
+            >
+              🍫 Products
+            </Link>
+            <Link
+              to="/admin/orders"
+              style={styles.mobileLink}
+              onClick={() => setMobileOpen(false)}
+            >
+              📦 Orders
+            </Link>
+            <div style={styles.mobileDivider}></div>
+            <div style={styles.mobileUserInfo}>
+              <span style={styles.mobileUserName}>{user.name}</span>
+              <span style={styles.mobileUserRole}>Admin</span>
+            </div>
+            <button onClick={handleLogout} style={styles.mobileLogoutBtn}>
+              <i data-feather="log-out"></i>
+              Logout
+            </button>
+          </div>
+        )}
+      </nav>
+    );
+  }
+
+  // ==================== USER NAVBAR ====================
   return (
     <nav style={styles.navbar}>
       <div style={styles.navContainer}>
@@ -715,5 +831,59 @@ const styles = {
     border: "none",
     background: "#6366f1",
     color: "#fff",
+  },
+  // Admin-specific styles
+  userInfo: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-end",
+    gap: "2px",
+  },
+  userName: {
+    fontSize: "14px",
+    fontWeight: 700,
+    color: "#111827",
+  },
+  userRole: {
+    fontSize: "11px",
+    fontWeight: 600,
+    color: "#6366f1",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  logoutBtn: {
+    padding: "10px 18px",
+    background: "linear-gradient(135deg, #ef4444, #dc2626)",
+    border: "none",
+    borderRadius: "8px",
+    color: "#fff",
+    fontWeight: 600,
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "all 0.3s ease",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)",
+  },
+  mobileLogoutBtn: {
+    padding: "12px",
+    background: "linear-gradient(135deg, #ef4444, #dc2626)",
+    border: "none",
+    borderRadius: "8px",
+    color: "#fff",
+    fontWeight: 600,
+    fontSize: "14px",
+    cursor: "pointer",
+    margin: "8px 12px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+  },
+  mobileDivider: {
+    height: "1px",
+    background: "#e5e7eb",
+    margin: "12px",
   },
 };

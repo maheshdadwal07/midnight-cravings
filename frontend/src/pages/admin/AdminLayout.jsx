@@ -8,10 +8,10 @@ export default function AdminLayout() {
   const { user, logout } = useContext(AuthContext);
 
   const navItems = [
-    { path: "/admin/users", label: "Users" },
-    { path: "/admin/sellers", label: "Sellers" },
-    { path: "/admin/products", label: "Products" },
-    { path: "/admin/orders", label: "Orders" },
+    { path: "/admin/users", label: "Users", icon: "👥" },
+    { path: "/admin/sellers", label: "Sellers", icon: "🏪" },
+    { path: "/admin/products", label: "Products", icon: "🍫" },
+    { path: "/admin/orders", label: "Orders", icon: "📦" },
   ];
 
   const handleLogout = () => {
@@ -24,7 +24,11 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-top">
-          <h2 className="logo">Admin Panel</h2>
+          <div className="logo-container">
+            <div className="logo-icon">🌙</div>
+            <h2 className="logo">Midnight Cravings</h2>
+            <div className="logo-subtitle">Admin Panel</div>
+          </div>
 
           {/* Admin Info */}
           {user && user.role === "admin" && (
@@ -34,6 +38,7 @@ export default function AdminLayout() {
               </div>
               <div className="admin-details">
                 <div className="admin-name">{user.name}</div>
+                <div className="admin-role">Administrator</div>
                 <div className="admin-email">{user.email}</div>
               </div>
             </div>
@@ -41,6 +46,7 @@ export default function AdminLayout() {
 
           {/* Navigation */}
           <nav>
+            <div className="nav-section-title">NAVIGATION</div>
             {navItems.map((item) => (
               <Link
                 key={item.path}
@@ -49,16 +55,22 @@ export default function AdminLayout() {
                   location.pathname === item.path ? "active" : ""
                 }`}
               >
-                {item.label}
+                <span className="nav-icon">{item.icon}</span>
+                <span className="nav-label">{item.label}</span>
+                {location.pathname === item.path && (
+                  <span className="nav-indicator">●</span>
+                )}
               </Link>
             ))}
           </nav>
         </div>
 
         {/* Logout Button */}
-        <button className="logout-btn" onClick={handleLogout}>
-          Logout
-        </button>
+        <div className="sidebar-bottom">
+          <button className="logout-btn" onClick={handleLogout}>
+            <span>🚪</span> Logout
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -79,14 +91,14 @@ export default function AdminLayout() {
 
         /* Sidebar */
         .sidebar {
-          width: 250px;
-          background: #111827;
+          width: 280px;
+          background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
           color: white;
-          padding: 28px 20px;
+          padding: 0;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+          box-shadow: 4px 0 24px rgba(0,0,0,0.15);
           position: sticky;
           top: 0;
           height: 100vh;
@@ -97,122 +109,206 @@ export default function AdminLayout() {
           display: flex;
           flex-direction: column;
           gap: 24px;
+          padding: 28px 20px;
+          flex: 1;
+          overflow-y: auto;
+        }
+
+        .logo-container {
+          text-align: center;
+          padding: 20px 10px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 16px;
+          backdrop-filter: blur(10px);
+        }
+
+        .logo-icon {
+          font-size: 40px;
+          margin-bottom: 8px;
         }
 
         .logo {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 700;
-          color: #f9fafb;
-          text-align: center;
+          color: #fff;
           letter-spacing: 0.5px;
-          margin-bottom: 8px;
+          margin: 0 0 4px 0;
+        }
+
+        .logo-subtitle {
+          font-size: 12px;
+          color: #c7d2fe;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          font-weight: 600;
         }
 
         /* Admin Info */
         .admin-info {
           display: flex;
           align-items: center;
-          background: #1f2937;
-          padding: 12px 14px;
-          border-radius: 10px;
-          gap: 12px;
+          background: rgba(255, 255, 255, 0.08);
+          padding: 16px;
+          border-radius: 14px;
+          gap: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          transition: all 0.3s ease;
+        }
+
+        .admin-info:hover {
+          background: rgba(255, 255, 255, 0.12);
+          border-color: rgba(255, 255, 255, 0.2);
         }
 
         .admin-avatar {
-          width: 44px;
-          height: 44px;
+          width: 50px;
+          height: 50px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          background: linear-gradient(135deg, #818cf8, #6366f1);
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-weight: 600;
-          font-size: 1rem;
+          font-weight: 700;
+          font-size: 1.1rem;
           flex-shrink: 0;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
 
         .admin-details {
           display: flex;
           flex-direction: column;
-          line-height: 1.2;
+          gap: 2px;
+          flex: 1;
+          overflow: hidden;
         }
 
         .admin-name {
-          font-weight: 600;
+          font-weight: 700;
           color: #fff;
           font-size: 0.95rem;
         }
 
+        .admin-role {
+          font-size: 0.7rem;
+          color: #a5b4fc;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          font-weight: 600;
+        }
+
         .admin-email {
-          font-size: 0.8rem;
-          color: #9ca3af;
+          font-size: 0.75rem;
+          color: #cbd5e1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .nav-section-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #a5b4fc;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+          padding: 0 4px;
         }
 
         nav {
           display: flex;
           flex-direction: column;
-          gap: 10px;
-          margin-top: 12px;
+          gap: 6px;
         }
 
         .nav-link {
-          display: block;
-          color: #d1d5db;
-          padding: 10px 14px;
-          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: #e0e7ff;
+          padding: 12px 16px;
+          border-radius: 10px;
           font-weight: 500;
           text-decoration: none;
           transition: all 0.3s ease;
+          position: relative;
+        }
+
+        .nav-icon {
+          font-size: 20px;
+          transition: transform 0.3s ease;
+        }
+
+        .nav-label {
+          flex: 1;
+          font-size: 14px;
+        }
+
+        .nav-indicator {
+          color: #fff;
+          font-size: 8px;
         }
 
         .nav-link:hover {
-          background: #374151;
+          background: rgba(255, 255, 255, 0.1);
           color: white;
+          transform: translateX(4px);
+        }
+
+        .nav-link:hover .nav-icon {
+          transform: scale(1.2);
         }
 
         .nav-link.active {
-          background: #6366f1;
+          background: linear-gradient(135deg, #818cf8, #6366f1);
           color: white;
           font-weight: 600;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        /* Sidebar Bottom */
+        .sidebar-bottom {
+          padding: 20px;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.2);
         }
 
         /* Logout Button */
         .logout-btn {
-          background: #ef4444;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: linear-gradient(135deg, #ef4444, #dc2626);
           color: white;
           border: none;
-          padding: 12px 16px;
-          border-radius: 8px;
+          padding: 14px 16px;
+          border-radius: 10px;
           font-weight: 600;
+          font-size: 14px;
           cursor: pointer;
           transition: all 0.3s ease;
-          margin-top: 16px;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
         }
 
         .logout-btn:hover {
-          background: #dc2626;
+          background: linear-gradient(135deg, #dc2626, #b91c1c);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
         }
 
         .logout-btn:active {
-          transform: scale(0.98);
+          transform: translateY(0);
         }
 
         /* Main content */
         .content {
           flex: 1;
-          padding: 32px;
-          background: #f9fafb;
+          padding: 36px;
+          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
           overflow-y: auto;
           transition: all 0.3s ease;
-        }
-
-        .content > * {
-          background: white;
-          padding: 24px;
-          border-radius: 12px;
-          box-shadow: 0 6px 18px rgba(15,23,42,0.06);
-          margin-bottom: 24px;
         }
 
         /* Scrollbar styling */

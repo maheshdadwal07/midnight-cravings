@@ -5,22 +5,36 @@ import toast from 'react-hot-toast'
 export default function ProductCard({ product, onClick }) {
   const { addItem } = useContext(CartContext)
   const price = (product.price !== undefined && product.price !== null) ? product.price : null
-  const sellers = product.sellerCount || (product.sellers || []).length || 0
+  
+  // Filter out banned sellers - check both ways for safety
+  const availableSellers = (product.sellers || []).filter(s => {
+    // Check if seller object exists and is not banned
+    if (!s || !s.seller_id) return false;
+    return s.seller_id.banned !== true;
+  });
+  
+  const sellers = availableSellers.length;
 
   const handleQuickAdd = async (e) => {
     e.stopPropagation();
     
-    // Check if there are any sellers
-    if (sellers === 0 || !product.sellers || product.sellers.length === 0) {
+    // Check if there are any available (non-banned) sellers
+    if (sellers === 0 || availableSellers.length === 0) {
       toast.error("No sellers available for this product");
       return;
     }
 
-    const sellerListing = product.sellers[0];
+    const sellerListing = availableSellers[0];
     
     // Check if seller listing exists and has valid price
     if (!sellerListing || !sellerListing._id) {
       toast.error("Invalid seller listing");
+      return;
+    }
+
+    // Double check seller is not banned (safety check)
+    if (sellerListing.seller_id?.banned === true) {
+      toast.error("This seller is currently unavailable");
       return;
     }
 

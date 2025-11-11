@@ -12,12 +12,18 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [sellers, setSellers] = useState([]);
   const [similarProducts, setSimilarProducts] = useState([]);
+  const [otherProducts, setOtherProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
-  const { addItem } = useContext(CartContext);
+  const { addItem, items } = useContext(CartContext);
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState("");
+
+  // Check if product is already in cart
+  const isInCart = selectedSeller && items.some(
+    (item) => item.sellerProduct_id === selectedSeller._id
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -52,6 +58,18 @@ export default function ProductDetail() {
             })
             .slice(0, 4);
           setSimilarProducts(similar);
+          
+          // Get other products (different category, exclude current product)
+          const others = pRes.data
+            .filter((p) => {
+              const pId = p._id || p.id;
+              const sellerCount = p.sellerCount || (p.sellers || []).length || 0;
+              return pId !== id && 
+                     p.category !== found.category && 
+                     sellerCount > 0;
+            })
+            .slice(0, 8);
+          setOtherProducts(others);
         }
       } catch (err) {
         console.error("Failed to load product or sellers", err);
@@ -71,6 +89,12 @@ export default function ProductDetail() {
 
   const handleAddToCart = async () => {
     if (!selectedSeller) return toast.error("Select a seller");
+    
+    // Check if seller is banned
+    if (selectedSeller.seller_id?.banned) {
+      return toast.error("This seller is currently unavailable");
+    }
+    
     if (quantity < 1) return toast.error("Quantity must be at least 1");
     if (quantity > selectedSeller.stock) return toast.error("Not enough stock");
 
@@ -261,61 +285,77 @@ export default function ProductDetail() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {sellers.map((s) => (
-                    <div
-                      key={s._id}
-                      onClick={() => setSelectedSeller(s)}
-                      style={{
-                        padding: 16,
-                        border:
-                          selectedSeller?._id === s._id
+                  {sellers.map((s) => {
+                    const isBanned = s.seller_id?.banned;
+                    return (
+                      <div
+                        key={s._id}
+                        onClick={() => !isBanned && setSelectedSeller(s)}
+                        style={{
+                          padding: 16,
+                          border: isBanned
+                            ? "2px solid #fca5a5"
+                            : selectedSeller?._id === s._id
                             ? "2px solid #6366f1"
                             : "2px solid #e5e7eb",
-                        borderRadius: 12,
-                        background:
-                          selectedSeller?._id === s._id ? "#f5f3ff" : "#fff",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (selectedSeller?._id !== s._id) {
-                          e.currentTarget.style.borderColor = "#c7d2fe";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (selectedSeller?._id !== s._id) {
-                          e.currentTarget.style.borderColor = "#e5e7eb";
-                        }
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            color: "#374151",
-                            fontSize: 15,
-                          }}
-                        >
-                          {s.seller_id?.name || "Seller"}
-                        </div>
-                        <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
-                          Stock: {s.stock} units
-                        </div>
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 20,
-                          fontWeight: 700,
-                          color: "#6366f1",
+                          borderRadius: 12,
+                          background: isBanned
+                            ? "#fef2f2"
+                            : selectedSeller?._id === s._id
+                            ? "#f5f3ff"
+                            : "#fff",
+                          cursor: isBanned ? "not-allowed" : "pointer",
+                          transition: "all 0.2s",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          opacity: isBanned ? 0.6 : 1,
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isBanned && selectedSeller?._id !== s._id) {
+                            e.currentTarget.style.borderColor = "#c7d2fe";
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isBanned && selectedSeller?._id !== s._id) {
+                            e.currentTarget.style.borderColor = "#e5e7eb";
+                          }
                         }}
                       >
-                        ₹{s.price}
+                        <div>
+                          <div
+                            style={{
+                              fontWeight: 600,
+                              color: isBanned ? "#dc2626" : "#374151",
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 6,
+                            }}
+                          >
+                            {s.seller_id?.name || "Seller"}
+                            {isBanned && (
+                              <span style={{ fontSize: 12, color: "#dc2626" }}>
+                                (Unavailable)
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
+                            {isBanned ? "Currently unavailable" : `Stock: ${s.stock} units`}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 20,
+                            fontWeight: 700,
+                            color: isBanned ? "#dc2626" : "#6366f1",
+                          }}
+                        >
+                          {isBanned ? "🚫" : `₹${s.price}`}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -424,10 +464,10 @@ export default function ProductDetail() {
                 </div>
 
                 <button
-                  onClick={handleAddToCart}
+                  onClick={isInCart ? () => navigate('/cart') : handleAddToCart}
                   style={{
                     padding: "16px 32px",
-                    background: "#6366f1",
+                    background: isInCart ? "#10b981" : "#6366f1",
                     color: "#fff",
                     fontSize: 16,
                     fontWeight: 700,
@@ -435,22 +475,26 @@ export default function ProductDetail() {
                     border: "none",
                     cursor: "pointer",
                     transition: "all 0.2s",
-                    boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
+                    boxShadow: isInCart 
+                      ? "0 4px 12px rgba(16, 185, 129, 0.3)" 
+                      : "0 4px 12px rgba(99, 102, 241, 0.3)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#4f46e5";
+                    e.currentTarget.style.background = isInCart ? "#059669" : "#4f46e5";
                     e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow =
-                      "0 8px 20px rgba(99, 102, 241, 0.4)";
+                    e.currentTarget.style.boxShadow = isInCart
+                      ? "0 8px 20px rgba(16, 185, 129, 0.4)"
+                      : "0 8px 20px rgba(99, 102, 241, 0.4)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#6366f1";
+                    e.currentTarget.style.background = isInCart ? "#10b981" : "#6366f1";
                     e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow =
-                      "0 4px 12px rgba(99, 102, 241, 0.3)";
+                    e.currentTarget.style.boxShadow = isInCart
+                      ? "0 4px 12px rgba(16, 185, 129, 0.3)"
+                      : "0 4px 12px rgba(99, 102, 241, 0.3)";
                   }}
                 >
-                  🛒 Add to Cart
+                  {isInCart ? "✓ Go to Cart" : "🛒 Add to Cart"}
                 </button>
               </>
             )}
@@ -508,20 +552,98 @@ export default function ProductDetail() {
             </div>
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                display: "flex",
                 gap: 20,
+                overflowX: "auto",
+                overflowY: "hidden",
+                paddingBottom: 16,
+                scrollbarWidth: "thin",
+                scrollbarColor: "#6366f1 #f3f4f6",
               }}
             >
               {similarProducts.map((p) => (
-                <ProductCard
+                <div
                   key={p._id || p.id}
-                  product={p}
-                  onClick={() => {
-                    navigate(`/products/${p._id || p.id}`);
-                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  style={{
+                    minWidth: 280,
+                    maxWidth: 280,
+                    flexShrink: 0,
                   }}
-                />
+                >
+                  <ProductCard
+                    product={p}
+                    onClick={() => {
+                      navigate(`/products/${p._id || p.id}`);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Other Products Section */}
+        {otherProducts.length > 0 && (
+          <div style={{ marginTop: 48 }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 24,
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: "#1f2937",
+                  margin: 0,
+                }}
+              >
+                Other Products
+              </h2>
+              <Link
+                to="/products"
+                style={{
+                  color: "#6366f1",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                View All →
+              </Link>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                gap: 20,
+                overflowX: "auto",
+                overflowY: "hidden",
+                paddingBottom: 16,
+                scrollbarWidth: "thin",
+                scrollbarColor: "#6366f1 #f3f4f6",
+              }}
+            >
+              {otherProducts.map((p) => (
+                <div
+                  key={p._id || p.id}
+                  style={{
+                    minWidth: 280,
+                    maxWidth: 280,
+                    flexShrink: 0,
+                  }}
+                >
+                  <ProductCard
+                    product={p}
+                    onClick={() => {
+                      navigate(`/products/${p._id || p.id}`);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  />
+                </div>
               ))}
             </div>
           </div>

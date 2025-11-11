@@ -17,7 +17,169 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ---------------- GET all products ----------------
+// ---------------- GET all products for SELLER (no filtering for listing) ----------------
+router.get("/seller/all", protectRoute(["seller"]), async (req, res) => {
+  try {
+    const { hostel, category, name } = req.query;
+
+    const filter = {};
+    if (hostel) filter.hostel = hostel;
+    if (category) filter.category = category;
+    if (name) filter.name = { $regex: name, $options: "i" };
+
+    // Seller sees ALL products for listing purposes
+    const pipeline = [
+      { $match: filter },
+      {
+        $lookup: {
+          from: "sellerproducts",
+          localField: "_id",
+          foreignField: "product_id",
+          as: "sellers",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellers.seller_id",
+          foreignField: "_id",
+          as: "sellerUsers",
+        },
+      },
+      {
+        $addFields: {
+          sellers: {
+            $map: {
+              input: "$sellers",
+              as: "seller",
+              in: {
+                $mergeObjects: [
+                  "$$seller",
+                  {
+                    seller_id: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$sellerUsers",
+                            as: "user",
+                            cond: { $eq: ["$$user._id", "$$seller.seller_id"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          price: {
+            $cond: [
+              { $gt: [{ $size: "$sellers" }, 0] },
+              { $min: "$sellers.price" },
+              null,
+            ],
+          },
+          sellerCount: { $size: "$sellers" },
+        },
+      },
+      { $project: { sellerUsers: 0 } },
+      { $sort: { createdAt: -1 } },
+    ];
+
+    const products = await Product.aggregate(pipeline);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ---------------- GET all products for ADMIN (no filtering) ----------------
+router.get("/admin/all", protectRoute(["admin"]), async (req, res) => {
+  try {
+    const { hostel, category, name } = req.query;
+
+    const filter = {};
+    if (hostel) filter.hostel = hostel;
+    if (category) filter.category = category;
+    if (name) filter.name = { $regex: name, $options: "i" };
+
+    // Admin sees ALL products with all sellers (including banned)
+    const pipeline = [
+      { $match: filter },
+      {
+        $lookup: {
+          from: "sellerproducts",
+          localField: "_id",
+          foreignField: "product_id",
+          as: "sellers",
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellers.seller_id",
+          foreignField: "_id",
+          as: "sellerUsers",
+        },
+      },
+      {
+        $addFields: {
+          sellers: {
+            $map: {
+              input: "$sellers",
+              as: "seller",
+              in: {
+                $mergeObjects: [
+                  "$$seller",
+                  {
+                    seller_id: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$sellerUsers",
+                            as: "user",
+                            cond: { $eq: ["$$user._id", "$$seller.seller_id"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          price: {
+            $cond: [
+              { $gt: [{ $size: "$sellers" }, 0] },
+              { $min: "$sellers.price" },
+              null,
+            ],
+          },
+          sellerCount: { $size: "$sellers" },
+        },
+      },
+      { $project: { sellerUsers: 0 } },
+      { $sort: { createdAt: -1 } },
+    ];
+
+    const products = await Product.aggregate(pipeline);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ---------------- GET all products (USER-FACING - filters banned sellers) ----------------
 router.get("/", async (req, res) => {
   try {
     const { hostel, category, name } = req.query;
@@ -39,6 +201,55 @@ router.get("/", async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "users",
+          localField: "sellers.seller_id",
+          foreignField: "_id",
+          as: "sellerUsers",
+        },
+      },
+      {
+        $addFields: {
+          sellers: {
+            $map: {
+              input: "$sellers",
+              as: "seller",
+              in: {
+                $mergeObjects: [
+                  "$$seller",
+                  {
+                    seller_id: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$sellerUsers",
+                            as: "user",
+                            cond: { $eq: ["$$user._id", "$$seller.seller_id"] },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          // Filter out banned sellers
+          sellers: {
+            $filter: {
+              input: "$sellers",
+              as: "seller",
+              cond: { $ne: ["$$seller.seller_id.banned", true] },
+            },
+          },
+        },
+      },
+      {
         $addFields: {
           price: {
             $cond: [
@@ -50,6 +261,9 @@ router.get("/", async (req, res) => {
           sellerCount: { $size: "$sellers" },
         },
       },
+      // Only show products that have at least one non-banned seller
+      { $match: { sellerCount: { $gt: 0 } } },
+      { $project: { sellerUsers: 0 } },
       { $sort: { createdAt: -1 } },
     ];
 

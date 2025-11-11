@@ -37,7 +37,7 @@ export default function SellerDashboard() {
       const results = await Promise.allSettled([
         api.get("/api/seller"),
         api.get("/api/orders/seller-orders"),
-        api.get("/api/products"),
+        api.get("/api/products/seller/all"), // Show all products for seller listing
       ]);
 
       if (!mounted) return;
@@ -408,11 +408,31 @@ export default function SellerDashboard() {
   }
 
   function renderOrders() {
+    // Group orders by razorpay_order_id
+    const ordersByRazorpayId = {};
+    orders.forEach((order) => {
+      const key = order.razorpay_order_id || order._id;
+      if (!ordersByRazorpayId[key]) {
+        ordersByRazorpayId[key] = [];
+      }
+      ordersByRazorpayId[key].push(order);
+    });
+
+    // Convert to array and sort by created date
+    const groupedOrdersArray = Object.values(ordersByRazorpayId).sort((a, b) => {
+      const dateA = new Date(a[0].createdAt);
+      const dateB = new Date(b[0].createdAt);
+      return dateB - dateA;
+    });
+
+    // Filter by status
     const groupedOrders = {
-      pending: orders.filter((o) => o.status === "pending"),
-      accepted: orders.filter((o) => o.status === "accepted"),
-      completed: orders.filter((o) => o.status === "completed"),
-      cancelled: orders.filter((o) => o.status === "cancelled"),
+      pending: groupedOrdersArray.filter((group) => group[0].status === "pending"),
+      accepted: groupedOrdersArray.filter((group) => group[0].status === "accepted"),
+      completed: groupedOrdersArray.filter((group) => group[0].status === "completed"),
+      cancelled: groupedOrdersArray.filter((group) => 
+        group[0].status === "cancelled" || group[0].status === "rejected"
+      ),
     };
 
     return (
@@ -431,11 +451,12 @@ export default function SellerDashboard() {
               <p style={styles.emptyText}>No {status} orders</p>
             ) : (
               <div style={styles.orderCards}>
-                {groupedOrders[status].map((o) => (
-                  <OrderCard
-                    key={o._id}
-                    order={o}
-                    onUpdateStatus={updateOrder}
+                {groupedOrders[status].map((orderGroup, idx) => (
+                  <OrderGroupCard
+                    key={orderGroup[0].razorpay_order_id || orderGroup[0]._id}
+                    orderGroup={orderGroup}
+                    orderNumber={groupedOrders[status].length - idx}
+                    onUpdateStatus={updateOrderGroup}
                   />
                 ))}
               </div>
@@ -530,6 +551,27 @@ export default function SellerDashboard() {
     try {
       const res = await api.patch(`/api/orders/${id}`, { status });
       setOrders((prev) => prev.map((x) => (x._id === id ? res.data.order : x)));
+      toast.success(`Order ${status}!`);
+    } catch {
+      toast.error("Update failed");
+    }
+  }
+
+  async function updateOrderGroup(orderGroup, status) {
+    try {
+      // Update all orders in the group
+      const updatePromises = orderGroup.map((order) =>
+        api.patch(`/api/orders/${order._id}`, { status })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      // Update local state
+      const orderIds = orderGroup.map((o) => o._id);
+      setOrders((prev) =>
+        prev.map((x) => (orderIds.includes(x._id) ? { ...x, status } : x))
+      );
+      
       toast.success(`Order ${status}!`);
     } catch {
       toast.error("Update failed");
@@ -687,48 +729,77 @@ export default function SellerDashboard() {
     );
   }
 
-  function OrderCard({ order, onUpdateStatus }) {
+  function OrderGroupCard({ orderGroup, orderNumber, onUpdateStatus }) {
+    const firstOrder = orderGroup[0];
+    const totalAmount = orderGroup.reduce((sum, order) => sum + order.totalPrice, 0);
+    const customerName = firstOrder.user_id?.name || "Unknown";
+    const orderDate = new Date(firstOrder.createdAt).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
     return (
-      <div style={styles.orderCard}>
-        <div style={styles.orderCardHeader}>
-          <img
-            src={getImageUrl(order.sellerProduct_id?.product_id?.image)}
-            alt=""
-            style={styles.orderCardImage}
-          />
-          <div style={{ flex: 1 }}>
-            <h4 style={styles.orderCardName}>
-              {order.sellerProduct_id?.product_id?.name}
+      <div style={styles.orderGroupCard}>
+        {/* Order Header */}
+        <div style={styles.orderGroupHeader}>
+          <div>
+            <h4 style={styles.orderGroupTitle}>
+              Order #{orderNumber}
             </h4>
-            <p style={styles.orderCardMeta}>
-              Customer: {order.user_id?.name} • Qty: {order.quantity}
+            <p style={styles.orderGroupMeta}>
+              Customer: {customerName} • {orderDate}
             </p>
-            <p style={styles.orderCardPrice}>Total: ₹{order.totalPrice}</p>
+          </div>
+          <div style={styles.orderGroupTotal}>
+            ₹{totalAmount}
           </div>
         </div>
+
+        {/* Order Items */}
+        <div style={styles.orderItemsContainer}>
+          {orderGroup.map((order) => (
+            <div key={order._id} style={styles.orderItem}>
+              <img
+                src={getImageUrl(order.sellerProduct_id?.product_id?.image)}
+                alt=""
+                style={styles.orderItemImage}
+              />
+              <div style={styles.orderItemDetails}>
+                <p style={styles.orderItemName}>
+                  {order.sellerProduct_id?.product_id?.name}
+                </p>
+                <p style={styles.orderItemQty}>Qty: {order.quantity}</p>
+              </div>
+              <p style={styles.orderItemPrice}>₹{order.totalPrice}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Order Actions */}
         <div style={styles.orderCardActions}>
-          {order.status === "pending" && (
+          {firstOrder.status === "pending" && (
             <>
               <button
-                onClick={() => onUpdateStatus(order._id, "accepted")}
+                onClick={() => onUpdateStatus(orderGroup, "accepted")}
                 style={styles.acceptBtn}
               >
-                ✅ Accept
+                ✅ Accept Order
               </button>
               <button
-                onClick={() => onUpdateStatus(order._id, "rejected")}
+                onClick={() => onUpdateStatus(orderGroup, "rejected")}
                 style={styles.rejectBtn}
               >
-                ❌ Reject
+                ❌ Reject Order
               </button>
             </>
           )}
-          {order.status === "accepted" && (
+          {firstOrder.status === "accepted" && (
             <button
-              onClick={() => onUpdateStatus(order._id, "completed")}
+              onClick={() => onUpdateStatus(orderGroup, "completed")}
               style={styles.completeBtn}
             >
-              🎉 Complete
+              🎉 Mark Complete
             </button>
           )}
         </div>
@@ -1215,6 +1286,79 @@ const styles = {
     borderRadius: 12,
     padding: 16,
     background: "#fafafa",
+  },
+  orderGroupCard: {
+    border: "2px solid #e5e7eb",
+    borderRadius: 16,
+    padding: 20,
+    background: "#ffffff",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+  },
+  orderGroupHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottom: "2px solid #f3f4f6",
+  },
+  orderGroupTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: "#1f2937",
+    margin: 0,
+    marginBottom: 6,
+  },
+  orderGroupMeta: {
+    fontSize: 13,
+    color: "#6b7280",
+    margin: 0,
+  },
+  orderGroupTotal: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: "#6366f1",
+  },
+  orderItemsContainer: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    marginBottom: 16,
+  },
+  orderItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 10,
+    background: "#f9fafb",
+  },
+  orderItemImage: {
+    width: 60,
+    height: 60,
+    objectFit: "cover",
+    borderRadius: 8,
+  },
+  orderItemDetails: {
+    flex: 1,
+  },
+  orderItemName: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: "#1f2937",
+    margin: 0,
+    marginBottom: 4,
+  },
+  orderItemQty: {
+    fontSize: 13,
+    color: "#6b7280",
+    margin: 0,
+  },
+  orderItemPrice: {
+    fontSize: 15,
+    fontWeight: 700,
+    color: "#10b981",
+    margin: 0,
   },
   orderCardHeader: {
     display: "flex",
