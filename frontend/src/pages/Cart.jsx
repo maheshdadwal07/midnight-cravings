@@ -5,17 +5,34 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { createRazorpayOrder, loadRazorpay, completePayment } from '../services/payment'
 import toast from 'react-hot-toast'
+import Icon from '../components/Icon'
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, clear } = useContext(CartContext)
   const { user } = useContext(AuthContext)
   const navigate = useNavigate()
   const [placing, setPlacing] = useState(false)
+  
+  // Delivery address customization
+  const [customDelivery, setCustomDelivery] = useState(false)
+  const [deliveryHostel, setDeliveryHostel] = useState('')
+  const [deliveryRoom, setDeliveryRoom] = useState('')
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0)
   const deliveryFee = items.length > 0 ? 40 : 0
   const tax = subtotal * 0.05 // 5% tax
   const total = subtotal + deliveryFee + tax
+  
+  const hostels = [
+    "Archimedes A",
+    "Archimedes B",
+    "Marco Polo",
+    "Francaline A",
+    "Francaline B",
+    "Aristotle",
+    "Alfred Nobel A",
+    "Alfred Nobel B",
+  ]
 
   const handleQuantityChange = (sellerProductId, newQty) => {
     if (newQty < 1) {
@@ -32,6 +49,14 @@ export default function Cart() {
       return
     }
     if (items.length === 0) return
+    
+    // Validate custom delivery address if enabled
+    if (customDelivery) {
+      if (!deliveryHostel || !deliveryRoom) {
+        toast.error('Please enter delivery hostel and room number')
+        return
+      }
+    }
     
     setPlacing(true)
     try {
@@ -57,6 +82,10 @@ export default function Cart() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               items,
+              customDelivery: customDelivery ? {
+                hostel: deliveryHostel,
+                room: deliveryRoom
+              } : null,
             });
             if (res.ok) {
               clear();
@@ -117,7 +146,7 @@ export default function Cart() {
               boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
             }}
           >
-            <div style={{ fontSize: 64, marginBottom: 16 }}>🛒</div>
+            <div style={{ fontSize: 64, marginBottom: 16 }}><Icon name="cart" size={64} /></div>
             <h2
               style={{
                 fontSize: 24,
@@ -211,7 +240,11 @@ export default function Cart() {
                       <img
                         src={
                           item.image
-                            ? `http://localhost:5001${item.image}`
+                            ? item.image.startsWith('http')
+                              ? item.image
+                              : item.image.startsWith('/')
+                              ? `http://localhost:5001${item.image}`
+                              : `http://localhost:5001/uploads/${item.image}`
                             : "https://via.placeholder.com/100"
                         }
                         alt={item.name}
@@ -436,48 +469,139 @@ export default function Cart() {
                   </div>
                 </div>
 
+                {/* Delivery Address Section */}
+                {user && (
+                  <div
+                    style={{
+                      marginTop: 20,
+                      padding: 16,
+                      background: "#f9fafb",
+                      borderRadius: 10,
+                      border: "2px solid #e5e7eb",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                      <h3 style={{ fontSize: 15, fontWeight: 600, color: "#111827", margin: 0 }}>
+                        📍 Delivery Address
+                      </h3>
+                      <button
+                        onClick={() => {
+                          setCustomDelivery(!customDelivery)
+                          if (!customDelivery) {
+                            setDeliveryHostel(user?.hostelBlock || '')
+                            setDeliveryRoom(user?.roomNumber || '')
+                          }
+                        }}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 12,
+                          background: customDelivery ? "#6366f1" : "#fff",
+                          color: customDelivery ? "#fff" : "#6366f1",
+                          border: "1px solid #6366f1",
+                          borderRadius: 6,
+                          cursor: "pointer",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {customDelivery ? "✓ Custom" : "Change"}
+                      </button>
+                    </div>
+                    
+                    {!customDelivery ? (
+                      <div style={{ fontSize: 14, color: "#4b5563" }}>
+                        <div style={{ marginBottom: 4 }}>
+                          <strong>Hostel:</strong> {user?.hostelBlock || "Not set"}
+                        </div>
+                        <div>
+                          <strong>Room:</strong> {user?.roomNumber || "Not set"}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+                        <select
+                          value={deliveryHostel}
+                          onChange={(e) => setDeliveryHostel(e.target.value)}
+                          style={{
+                            padding: "10px",
+                            fontSize: 14,
+                            border: "2px solid #e5e7eb",
+                            borderRadius: 8,
+                            background: "#fff",
+                            outline: "none",
+                          }}
+                        >
+                          <option value="">Select Hostel</option>
+                          {hostels.map((h) => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Room Number"
+                          value={deliveryRoom}
+                          onChange={(e) => setDeliveryRoom(e.target.value)}
+                          style={{
+                            padding: "10px",
+                            fontSize: 14,
+                            border: "2px solid #e5e7eb",
+                            borderRadius: 8,
+                            background: "#fff",
+                            outline: "none",
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!user && (
+                  <div
+                    style={{
+                      marginTop: 20,
+                      padding: 14,
+                      background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                      border: "2px solid #fbbf24",
+                      borderRadius: 10,
+                      fontSize: 14,
+                      color: "#78350f",
+                      textAlign: "center",
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 18 }}>🔒</span>
+                    Please login to place your order
+                  </div>
+                )}
+
                 <button
                   onClick={placeOrders}
-                  disabled={placing}
+                  disabled={placing || !user}
                   style={{
                     width: "100%",
-                    marginTop: 24,
+                    marginTop: 16,
                     padding: "14px",
-                    background: placing ? "#9ca3af" : "#6366f1",
+                    background: placing || !user ? "#9ca3af" : "#6366f1",
                     color: "#fff",
                     border: "none",
                     borderRadius: 8,
                     fontSize: 16,
                     fontWeight: 700,
-                    cursor: placing ? "not-allowed" : "pointer",
+                    cursor: placing || !user ? "not-allowed" : "pointer",
                     transition: "background 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    if (!placing) e.currentTarget.style.background = "#4f46e5";
+                    if (!placing && user) e.currentTarget.style.background = "#4f46e5";
                   }}
                   onMouseLeave={(e) => {
-                    if (!placing) e.currentTarget.style.background = "#6366f1";
+                    if (!placing && user) e.currentTarget.style.background = "#6366f1";
                   }}
                 >
-                  {placing ? "Processing..." : "Proceed to Payment"}
+                  {!user ? "Login to Checkout" : placing ? "Processing..." : "Proceed to Payment"}
                 </button>
-
-                {!user && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      padding: 12,
-                      background: "#fef3c7",
-                      border: "1px solid #fbbf24",
-                      borderRadius: 8,
-                      fontSize: 13,
-                      color: "#92400e",
-                      textAlign: "center",
-                    }}
-                  >
-                    Please login to place orders
-                  </div>
-                )}
               </div>
             </div>
           </div>

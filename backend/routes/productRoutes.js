@@ -281,26 +281,25 @@ router.post(
   upload.single("image"),
   async (req, res) => {
     try {
-      const { name, category, hostel, description } = req.body;
+      const { name, category, description } = req.body;
       const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-      if (!name || !category || !hostel) {
+      if (!name || !category) {
         return res
           .status(400)
-          .json({ message: "Name, category, and hostel are required" });
+          .json({ message: "Name and category are required" });
       }
 
-      const existing = await Product.findOne({ name, hostel });
+      const existing = await Product.findOne({ name });
       if (existing) {
         return res
           .status(400)
-          .json({ message: "Product already exists in this hostel" });
+          .json({ message: "Product with this name already exists" });
       }
 
       const product = await Product.create({
         name,
         category,
-        hostel,
         description,
         image,
       });
@@ -319,7 +318,7 @@ router.patch(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, category, hostel, description } = req.body;
+      const { name, category, description } = req.body;
 
       const product = await Product.findById(id);
       if (!product)
@@ -327,7 +326,6 @@ router.patch(
 
       if (name !== undefined) product.name = name;
       if (category !== undefined) product.category = category;
-      if (hostel !== undefined) product.hostel = hostel;
       if (description !== undefined) product.description = description;
 
       if (req.file) {

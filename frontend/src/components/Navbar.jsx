@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthProvider";
 import { CartContext } from "../context/CartProvider";
 import feather from "feather-icons";
+import Icon from "./Icon";
 
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
@@ -77,7 +78,7 @@ export default function Navbar() {
           >
             <NavItem
               to="/seller"
-              label="📊 Dashboard"
+              label={<><Icon name="chart" size={16} /> Dashboard</>}
               active={location.pathname === "/seller"}
             />
             <div style={styles.navDivider}></div>
@@ -93,7 +94,7 @@ export default function Navbar() {
               }}
               style={styles.quickActionBtn}
             >
-              📦 Listings
+              <Icon name="package" size={16} /> Listings
             </button>
             <button
               onClick={() => {
@@ -105,7 +106,7 @@ export default function Navbar() {
               }}
               style={styles.quickActionBtn}
             >
-              📋 Orders
+              <Icon name="package" size={16} /> Orders
             </button>
 
             {/* User Profile Dropdown */}
@@ -158,7 +159,7 @@ export default function Navbar() {
           >
             <NavItem
               to="/seller"
-              label="📊 Dashboard"
+              label={<><Icon name="chart" size={16} /> Dashboard</>}
               active={location.pathname === "/seller"}
               isMobile
               onClick={() => setMobileOpen(false)}
@@ -177,7 +178,7 @@ export default function Navbar() {
                 }}
                 style={styles.mobileActionBtn}
               >
-                📦 My Listings
+                <Icon name="package" size={16} /> My Listings
               </button>
               <button
                 onClick={() => {
@@ -190,7 +191,7 @@ export default function Navbar() {
                 }}
                 style={styles.mobileActionBtn}
               >
-                📋 My Orders
+                <Icon name="package" size={16} /> My Orders
               </button>
             </div>
 
@@ -207,7 +208,7 @@ export default function Navbar() {
               onClick={handleLogout}
               style={styles.mobileLinkDanger}
             >
-              🚪 Logout
+              <Icon name="door" size={16} /> Logout
             </Link>
           </div>
         )}
@@ -237,22 +238,22 @@ export default function Navbar() {
           >
             <NavItem
               to="/admin/users"
-              label="👥 Users"
+              label={<><Icon name="users" size={16} /> Users</>}
               active={location.pathname === "/admin/users"}
             />
             <NavItem
               to="/admin/sellers"
-              label="🏪 Sellers"
+              label={<><Icon name="store" size={16} /> Sellers</>}
               active={location.pathname === "/admin/sellers"}
             />
             <NavItem
               to="/admin/products"
-              label="🍫 Products"
+              label={<><Icon name="chocolate" size={16} /> Products</>}
               active={location.pathname === "/admin/products"}
             />
             <NavItem
               to="/admin/orders"
-              label="📦 Orders"
+              label={<><Icon name="package" size={16} /> Orders</>}
               active={location.pathname === "/admin/orders"}
             />
           </div>
@@ -293,28 +294,28 @@ export default function Navbar() {
               style={styles.mobileLink}
               onClick={() => setMobileOpen(false)}
             >
-              👥 Users
+              <Icon name="users" size={16} /> Users
             </Link>
             <Link
               to="/admin/sellers"
               style={styles.mobileLink}
               onClick={() => setMobileOpen(false)}
             >
-              🏪 Sellers
+              <Icon name="store" size={16} /> Sellers
             </Link>
             <Link
               to="/admin/products"
               style={styles.mobileLink}
               onClick={() => setMobileOpen(false)}
             >
-              🍫 Products
+              <Icon name="chocolate" size={16} /> Products
             </Link>
             <Link
               to="/admin/orders"
               style={styles.mobileLink}
               onClick={() => setMobileOpen(false)}
             >
-              📦 Orders
+              <Icon name="package" size={16} /> Orders
             </Link>
             <div style={styles.mobileDivider}></div>
             <div style={styles.mobileUserInfo}>

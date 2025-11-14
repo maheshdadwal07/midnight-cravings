@@ -3,6 +3,7 @@ import api, { setToken } from "../services/api";
 import { AuthContext } from "../context/AuthProvider";
 import toast from "react-hot-toast";
 import Select from "react-select";
+import Icon from "../components/Icon";
 
 export default function SellerDashboard() {
   const { user } = useContext(AuthContext);
@@ -12,16 +13,35 @@ export default function SellerDashboard() {
   const [listings, setListings] = useState([]);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
+  const [productRequests, setProductRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ productId: "", price: "", stock: "" });
   const [editingId, setEditingId] = useState(null);
   const [savingId, setSavingId] = useState(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState("overview"); // overview, listings, orders
+  const [activeTab, setActiveTab] = useState("overview"); // overview, listings, orders, requests
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  
+  // Product Request Form State
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    productName: "",
+    category: "Snacks",
+    description: "",
+    image: null,
+    suggestedPrice: "",
+    stock: "",
+  });
 
   // Helper to fix image URLs
-  const getImageUrl = (img) =>
-    img ? `http://localhost:5001${img}` : "https://via.placeholder.com/80";
+  const getImageUrl = (img) => {
+    if (!img) return "https://via.placeholder.com/80";
+    if (img.startsWith('http')) return img;
+    if (img.startsWith('/')) return `http://localhost:5001${img}`;
+    return `http://localhost:5001/uploads/${img}`;
+  };
 
   // Set token for API requests
   useEffect(() => {
@@ -38,16 +58,25 @@ export default function SellerDashboard() {
         api.get("/api/seller"),
         api.get("/api/orders/seller-orders"),
         api.get("/api/products/seller/all"), // Show all products for seller listing
+        api.get("/api/notifications"),
+        api.get("/api/notifications/unread-count"),
+        api.get("/api/product-requests/my-requests"), // Fetch product requests
       ]);
 
       if (!mounted) return;
 
-      const [sellerRes, ordersRes, productsRes] = results;
+      const [sellerRes, ordersRes, productsRes, notificationsRes, unreadRes, requestsRes] = results;
 
       if (sellerRes.status === "fulfilled") setListings(sellerRes.value.data);
       if (ordersRes.status === "fulfilled") setOrders(ordersRes.value.data);
       if (productsRes.status === "fulfilled")
         setProducts(productsRes.value.data);
+      if (notificationsRes.status === "fulfilled")
+        setNotifications(notificationsRes.value.data);
+      if (unreadRes.status === "fulfilled")
+        setUnreadCount(unreadRes.value.data.count);
+      if (requestsRes.status === "fulfilled")
+        setProductRequests(requestsRes.value.data);
 
       if (
         sellerRes.status !== "fulfilled" ||
@@ -113,6 +142,41 @@ export default function SellerDashboard() {
 
   // --- Approved Seller Dashboard ---
   
+  // Notification handlers
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await api.put(`/api/notifications/${notificationId}/read`);
+      setNotifications(prev => 
+        prev.map(n => n._id === notificationId ? { ...n, read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      toast.success("Notification marked as read");
+    } catch (error) {
+      toast.error("Failed to mark notification as read");
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.put("/api/notifications/mark-all-read");
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      toast.error("Failed to mark all as read");
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await api.delete(`/api/notifications/${notificationId}`);
+      setNotifications(prev => prev.filter(n => n._id !== notificationId));
+      toast.success("Notification deleted");
+    } catch (error) {
+      toast.error("Failed to delete notification");
+    }
+  };
+
   // Calculate stats
   const totalRevenue = orders
     .filter((o) => o.status === "completed")
@@ -128,7 +192,7 @@ export default function SellerDashboard() {
         <aside style={styles.sidebar}>
           <div style={styles.sidebarHeader}>
             <div style={styles.logoSection}>
-              <span style={styles.logoIcon}>🏪</span>
+              <span style={styles.logoIcon}><Icon name="store" size={24} color="#fff" /></span>
               <div>
                 <h2 style={styles.sidebarTitle}>Seller Panel</h2>
                 <p style={styles.sidebarSubtitle}>{user.shopName || "My Shop"}</p>
@@ -138,7 +202,7 @@ export default function SellerDashboard() {
 
           <nav style={styles.sidebarNav}>
             <SidebarItem
-              icon="📊"
+              icon={<Icon name="chart" size={18} />}
               label="Overview"
               active={activeTab === "overview"}
               onClick={() => setActiveTab("overview")}
@@ -152,11 +216,19 @@ export default function SellerDashboard() {
               dataTab="listings"
             />
             <SidebarItem
-              icon="📋"
+              icon={<Icon name="clipboard" size={18} />}
               label="Orders"
               active={activeTab === "orders"}
               onClick={() => setActiveTab("orders")}
               dataTab="orders"
+            />
+            <SidebarItem
+              icon={<Icon name="plus" size={18} />}
+              label="Product Requests"
+              active={activeTab === "requests"}
+              onClick={() => setActiveTab("requests")}
+              dataTab="requests"
+              badge={productRequests.filter(r => r.status === "pending").length}
             />
           </nav>
 
@@ -180,25 +252,25 @@ export default function SellerDashboard() {
               <StatCard
                 title="Total Revenue"
                 value={`₹${totalRevenue}`}
-                icon="💰"
+                icon={<Icon name="dollar" size={40} color="#fff" />}
                 gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
               />
               <StatCard
                 title="Active Listings"
                 value={activeListings}
-                icon="📦"
+                icon={<Icon name="package" size={40} color="#fff" />}
                 gradient="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
               />
               <StatCard
                 title="Pending Orders"
                 value={pendingOrders}
-                icon="🔔"
+                icon={<Icon name="bell" size={40} color="#fff" />}
                 gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
               />
               <StatCard
                 title="Low Stock Alert"
                 value={lowStock}
-                icon="⚠️"
+                icon={<Icon name="warning" size={40} color="#fff" />}
                 gradient="linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
               />
             </div>
@@ -208,16 +280,101 @@ export default function SellerDashboard() {
           <div style={styles.contentCard}>
             <div style={styles.contentHeader}>
               <h2 style={styles.contentTitle}>
-                {activeTab === "overview" && "📊 Dashboard Overview"}
-                {activeTab === "listings" && "📦 Product Listings"}
-                {activeTab === "orders" && "📋 Order Management"}
+                {activeTab === "overview" && <><Icon name="chart-bar" size={20} /> Dashboard Overview</>}
+                {activeTab === "listings" && <><Icon name="package" size={20} /> Product Listings</>}
+                {activeTab === "orders" && <><Icon name="clipboard-list" size={20} /> Order Management</>}
+                {activeTab === "requests" && <><Icon name="plus-circle" size={20} /> Product Requests</>}
               </h2>
+              
+              {/* Notification Bell */}
+              <div style={styles.notificationWrapper}>
+                <button 
+                  style={styles.notificationButton}
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = styles.notificationButtonHover.background;
+                    e.currentTarget.style.borderColor = styles.notificationButtonHover.borderColor;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = styles.notificationButton.background;
+                    e.currentTarget.style.borderColor = styles.notificationButton.border.split(' ')[2];
+                  }}
+                >
+                  <Icon name="bell" size={20} />
+                  {unreadCount > 0 && (
+                    <span style={styles.notificationBadge}>{unreadCount}</span>
+                  )}
+                </button>
+                
+                {/* Notification Dropdown */}
+                {showNotifications && (
+                  <div style={styles.notificationDropdown}>
+                    <div style={styles.notificationHeader}>
+                      <h3 style={styles.notificationTitle}>Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button 
+                          style={styles.markAllReadBtn}
+                          onClick={handleMarkAllAsRead}
+                        >
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div style={styles.notificationList}>
+                      {notifications.length === 0 ? (
+                        <div style={styles.emptyNotifications}>
+                          <p>No notifications yet</p>
+                        </div>
+                      ) : (
+                        notifications.map((notif) => (
+                          <div 
+                            key={notif._id} 
+                            style={{
+                              ...styles.notificationItem,
+                              background: notif.read ? '#fff' : '#f0f9ff'
+                            }}
+                          >
+                            <div style={styles.notificationContent}>
+                              <p style={styles.notificationMessage}>
+                                {notif.message}
+                              </p>
+                              <p style={styles.notificationTime}>
+                                {new Date(notif.createdAt).toLocaleString()}
+                              </p>
+                            </div>
+                            <div style={styles.notificationActions}>
+                              {!notif.read && (
+                                <button 
+                                  style={styles.markReadBtn}
+                                  onClick={() => handleMarkAsRead(notif._id)}
+                                  title="Mark as read"
+                                >
+                                  ✓
+                                </button>
+                              )}
+                              <button 
+                                style={styles.deleteBtn}
+                                onClick={() => handleDeleteNotification(notif._id)}
+                                title="Delete"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={styles.contentBody}>
               {activeTab === "overview" && renderOverview()}
               {activeTab === "listings" && renderListings()}
               {activeTab === "orders" && renderOrders()}
+              {activeTab === "requests" && renderProductRequests()}
             </div>
           </div>
         </main>
@@ -225,13 +382,26 @@ export default function SellerDashboard() {
 
       {/* Add hover effects with style tag */}
       <style>{`
-        button[data-tab]:not([data-tab=""]):hover {
-          background: rgba(99, 102, 241, 0.1) !important;
-          transform: translateX(4px);
+        /* Smooth transition for sidebar buttons */
+        button[data-tab] {
+          transition: box-shadow 0.2s ease !important;
         }
         
-        div[style*="statCard"]:hover {
-          transform: translateY(-4px) scale(1.02);
+        /* Hover effect only for inactive buttons (transparent background) */
+        button[data-tab]:not([style*="background: rgb(99, 102, 241)"]):not([style*="background:#6366f1"]):hover {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+          border-color: transparent !important;
+          transform: none !important;
+        }
+        
+        /* No hover effect for active buttons (purple background) */
+        button[data-tab][style*="background: rgb(99, 102, 241)"]:hover,
+        button[data-tab][style*="background:#6366f1"]:hover {
+          background: #6366f1 !important;
+          color: #ffffff !important;
+          border-color: #6366f1 !important;
+          box-shadow: none !important;
+          transform: none !important;
         }
       `}</style>
 
@@ -283,7 +453,7 @@ export default function SellerDashboard() {
 
         {/* Top Products */}
         <div style={styles.card}>
-          <h3 style={styles.cardTitle}>🔥 Your Top Listings</h3>
+          <h3 style={styles.cardTitle}><Icon name="fire" size={20} /> Your Top Listings</h3>
           {recentListings.length === 0 ? (
             <p style={styles.emptyText}>No listings yet</p>
           ) : (
@@ -381,7 +551,7 @@ export default function SellerDashboard() {
 
         {/* Listings Grid */}
         <div style={styles.card}>
-          <h3 style={styles.cardTitle}>📦 All Listings ({listings.length})</h3>
+          <h3 style={styles.cardTitle}><Icon name="package" size={20} /> All Listings ({listings.length})</h3>
           {listings.length === 0 ? (
             <p style={styles.emptyText}>
               No listings yet. Create your first listing above!
@@ -440,10 +610,10 @@ export default function SellerDashboard() {
         {["pending", "accepted", "completed", "cancelled"].map((status) => (
           <div key={status} style={styles.orderSection}>
             <h3 style={styles.orderSectionTitle}>
-              {status === "pending" && "⏳"}
-              {status === "accepted" && "✅"}
-              {status === "completed" && "🎉"}
-              {status === "cancelled" && "❌"}{" "}
+              {status === "pending" && <Icon name="clock" size={20} />}
+              {status === "accepted" && <Icon name="check-circle" size={20} />}
+              {status === "completed" && <Icon name="check-circle" size={20} />}
+              {status === "cancelled" && <Icon name="x-circle" size={20} />}{" "}
               {status.charAt(0).toUpperCase() + status.slice(1)} (
               {groupedOrders[status].length})
             </h3>
@@ -578,9 +748,419 @@ export default function SellerDashboard() {
     }
   }
 
+  // ==================== PRODUCT REQUESTS ====================
+  
+  function renderProductRequests() {
+    const pendingRequests = productRequests.filter(r => r.status === "pending");
+    const approvedRequests = productRequests.filter(r => r.status === "approved");
+    const rejectedRequests = productRequests.filter(r => r.status === "rejected");
+
+    return (
+      <div>
+        {/* Request New Product Button */}
+        <div style={{ marginBottom: 24 }}>
+          <button
+            onClick={() => setShowRequestForm(true)}
+            style={{
+              padding: "14px 28px",
+              background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+              color: "#fff",
+              border: "none",
+              borderRadius: "12px",
+              fontSize: "16px",
+              fontWeight: "600",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(99, 102, 241, 0.3)",
+              transition: "all 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = "translateY(-2px)";
+              e.target.style.boxShadow = "0 6px 16px rgba(99, 102, 241, 0.4)";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = "translateY(0)";
+              e.target.style.boxShadow = "0 4px 12px rgba(99, 102, 241, 0.3)";
+            }}
+          >
+            ➕ Request New Product
+          </button>
+        </div>
+
+        {/* Request Form Modal */}
+        {showRequestForm && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              backdropFilter: "blur(4px)",
+            }}
+            onClick={() => setShowRequestForm(false)}
+          >
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: "20px",
+                padding: "40px",
+                maxWidth: "600px",
+                width: "90%",
+                maxHeight: "90vh",
+                overflow: "auto",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "700",
+                  color: "#1e293b",
+                  marginBottom: "24px",
+                }}
+              >
+                <Icon name="plus-circle" size={24} /> Request New Product
+              </h3>
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData();
+                  formData.append("productName", requestForm.productName);
+                  formData.append("category", requestForm.category);
+                  formData.append("description", requestForm.description);
+                  formData.append("suggestedPrice", requestForm.suggestedPrice);
+                  formData.append("stock", requestForm.stock);
+                  if (requestForm.image) {
+                    formData.append("image", requestForm.image);
+                  }
+
+                  try {
+                    const res = await api.post("/api/product-requests", formData, {
+                      headers: { "Content-Type": "multipart/form-data" },
+                    });
+                    toast.success("Product request submitted!");
+                    setProductRequests([res.data.productRequest, ...productRequests]);
+                    setShowRequestForm(false);
+                    setRequestForm({
+                      productName: "",
+                      category: "Snacks",
+                      description: "",
+                      image: null,
+                      suggestedPrice: "",
+                      stock: "",
+                    });
+                  } catch (error) {
+                    toast.error(error.response?.data?.message || "Failed to submit request");
+                  }
+                }}
+              >
+                <div style={{ display: "grid", gap: "20px" }}>
+                  <div>
+                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                      Product Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={requestForm.productName}
+                      onChange={(e) => setRequestForm({ ...requestForm, productName: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                      Category *
+                    </label>
+                    <select
+                      value={requestForm.category}
+                      onChange={(e) => setRequestForm({ ...requestForm, category: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                      }}
+                    >
+                      <option value="Snacks">Snacks</option>
+                      <option value="Beverages">Beverages</option>
+                      <option value="Instant Food">Instant Food</option>
+                      <option value="Desserts">Desserts</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                      Description *
+                    </label>
+                    <textarea
+                      value={requestForm.description}
+                      onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
+                      required
+                      rows={4}
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        resize: "vertical",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                      Product Image *
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setRequestForm({ ...requestForm, image: e.target.files[0] })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                    <div>
+                      <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                        Suggested Price (₹) *
+                      </label>
+                      <input
+                        type="number"
+                        value={requestForm.suggestedPrice}
+                        onChange={(e) => setRequestForm({ ...requestForm, suggestedPrice: e.target.value })}
+                        required
+                        min="0"
+                        step="0.01"
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          border: "2px solid #e2e8f0",
+                          borderRadius: "8px",
+                          fontSize: "14px",
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: "block", marginBottom: "8px", fontWeight: "600" }}>
+                        Initial Stock *
+                      </label>
+                      <input
+                        type="number"
+                        value={requestForm.stock}
+                        onChange={(e) => setRequestForm({ ...requestForm, stock: e.target.value })}
+                        required
+                        min="1"
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          border: "2px solid #e2e8f0",
+                          borderRadius: "8px",
+                          fontSize: "14px",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowRequestForm(false)}
+                      style={{
+                        flex: 1,
+                        padding: "12px",
+                        border: "2px solid #e2e8f0",
+                        borderRadius: "8px",
+                        background: "#fff",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      style={{
+                        flex: 1,
+                        padding: "12px",
+                        border: "none",
+                        borderRadius: "8px",
+                        background: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                        color: "#fff",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Submit Request
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Requests Lists */}
+        <div style={{ display: "grid", gap: "24px" }}>
+          {/* Pending Requests */}
+          {pendingRequests.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "16px", color: "#f59e0b" }}>
+                <Icon name="clock" size={18} /> Pending Requests ({pendingRequests.length})
+              </h3>
+              <div style={{ display: "grid", gap: "12px" }}>
+                {pendingRequests.map((req) => (
+                  <ProductRequestCard key={req._id} request={req} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Approved Requests */}
+          {approvedRequests.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "16px", color: "#10b981" }}>
+                <Icon name="check-circle" size={18} /> Approved Requests ({approvedRequests.length})
+              </h3>
+              <div style={{ display: "grid", gap: "12px" }}>
+                {approvedRequests.map((req) => (
+                  <ProductRequestCard key={req._id} request={req} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Rejected Requests */}
+          {rejectedRequests.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: "18px", fontWeight: "700", marginBottom: "16px", color: "#ef4444" }}>
+                <Icon name="x-circle" size={18} /> Rejected Requests ({rejectedRequests.length})
+              </h3>
+              <div style={{ display: "grid", gap: "12px" }}>
+                {rejectedRequests.map((req) => (
+                  <ProductRequestCard key={req._id} request={req} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {productRequests.length === 0 && (
+            <div style={{ textAlign: "center", padding: "60px 20px" }}>
+              <div style={{ marginBottom: "16px" }}><Icon name="package" size={64} /></div>
+              <h3 style={{ fontSize: "20px", fontWeight: "600", color: "#64748b", marginBottom: "8px" }}>
+                No product requests yet
+              </h3>
+              <p style={{ color: "#94a3b8", marginBottom: "24px" }}>
+                Request admin to add products that you want to sell
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function ProductRequestCard({ request }) {
+    const statusColors = {
+      pending: { bg: "#fef3c7", border: "#f59e0b", text: "#92400e" },
+      approved: { bg: "#d1fae5", border: "#10b981", text: "#065f46" },
+      rejected: { bg: "#fee2e2", border: "#ef4444", text: "#991b1b" },
+    };
+    const colors = statusColors[request.status];
+
+    return (
+      <div
+        style={{
+          background: "#fff",
+          border: `2px solid ${colors.border}`,
+          borderRadius: "12px",
+          padding: "20px",
+          display: "flex",
+          gap: "20px",
+        }}
+      >
+        <img
+          src={
+            request.image
+              ? request.image.startsWith('/uploads/')
+                ? getImageUrl(request.image)
+                : getImageUrl(`/uploads/${request.image}`)
+              : "https://via.placeholder.com/100"
+          }
+          alt={request.productName}
+          style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "8px" }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+            <h4 style={{ fontSize: "18px", fontWeight: "700", color: "#1e293b" }}>
+              {request.productName}
+            </h4>
+            <span
+              style={{
+                padding: "4px 12px",
+                background: colors.bg,
+                color: colors.text,
+                fontSize: "12px",
+                fontWeight: "600",
+                borderRadius: "6px",
+                textTransform: "capitalize",
+              }}
+            >
+              {request.status}
+            </span>
+          </div>
+          <p style={{ color: "#64748b", fontSize: "14px", marginBottom: "12px" }}>
+            {request.description}
+          </p>
+          <div style={{ display: "flex", gap: "16px", fontSize: "14px", color: "#64748b" }}>
+            <span><Icon name="package" size={14} /> {request.category}</span>
+            <span><Icon name="dollar-sign" size={14} /> ₹{request.suggestedPrice}</span>
+            <span><Icon name="bar-chart" size={14} /> Stock: {request.stock}</span>
+          </div>
+          {request.adminNote && (
+            <div style={{ marginTop: "12px", padding: "12px", background: "#f8fafc", borderRadius: "8px" }}>
+              <strong style={{ fontSize: "12px", color: "#64748b" }}>Admin Note:</strong>
+              <p style={{ fontSize: "14px", color: "#475569", marginTop: "4px" }}>{request.adminNote}</p>
+            </div>
+          )}
+          <div style={{ marginTop: "8px", fontSize: "12px", color: "#94a3b8" }}>
+            Requested on {new Date(request.createdAt).toLocaleDateString()}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ==================== HELPER COMPONENTS ====================
 
-  function SidebarItem({ icon, label, active, onClick, dataTab }) {
+  function SidebarItem({ icon, label, active, onClick, dataTab, badge }) {
     return (
       <button
         style={active ? styles.sidebarItemActive : styles.sidebarItem}
@@ -589,14 +1169,40 @@ export default function SellerDashboard() {
       >
         <span style={styles.sidebarIcon}>{icon}</span>
         <span style={styles.sidebarLabel}>{label}</span>
+        {badge > 0 && (
+          <span
+            style={{
+              marginLeft: "auto",
+              background: "#ef4444",
+              color: "#fff",
+              fontSize: "11px",
+              fontWeight: "700",
+              padding: "2px 8px",
+              borderRadius: "12px",
+              minWidth: "20px",
+              textAlign: "center",
+            }}
+          >
+            {badge}
+          </span>
+        )}
         {active && <span style={styles.activeIndicator}></span>}
       </button>
     );
   }
 
   function StatCard({ title, value, icon, gradient }) {
+    const [isHovered, setIsHovered] = React.useState(false);
+    
     return (
-      <div style={{ ...styles.statCard, background: gradient }}>
+      <div 
+        style={{
+          ...styles.statCard,
+          ...(isHovered ? styles.statCardHover : {}),
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <div style={styles.statIcon}>{icon}</div>
         <div style={styles.statValue}>{value}</div>
         <div style={styles.statTitle}>{title}</div>
@@ -668,7 +1274,7 @@ export default function SellerDashboard() {
       <div style={styles.listingCard}>
         <img
           src={listing.product_id?.image
-            ? `http://localhost:5001${listing.product_id.image}`
+            ? getImageUrl(listing.product_id.image)
             : "https://via.placeholder.com/80"}
           alt=""
           style={styles.listingImage}
@@ -717,7 +1323,7 @@ export default function SellerDashboard() {
                 </button>
                 <button
                   onClick={() => onDelete(listing._id)}
-                  style={styles.deleteBtn}
+                  style={styles.deleteBtnSecondary}
                 >
                   🗑️ Delete
                 </button>
@@ -730,14 +1336,68 @@ export default function SellerDashboard() {
   }
 
   function OrderGroupCard({ orderGroup, orderNumber, onUpdateStatus }) {
+    const [showOtpModal, setShowOtpModal] = React.useState(false);
+    const [otpInput, setOtpInput] = React.useState("");
+    const [verifying, setVerifying] = React.useState(false);
+    
     const firstOrder = orderGroup[0];
     const totalAmount = orderGroup.reduce((sum, order) => sum + order.totalPrice, 0);
-    const customerName = firstOrder.user_id?.name || "Unknown";
+    const customerName = firstOrder.buyerName || firstOrder.user_id?.name || "Unknown";
+    const deliveryHostel = firstOrder.deliveryHostel || "Not provided";
+    const deliveryRoom = firstOrder.deliveryRoom || "Not provided";
     const orderDate = new Date(firstOrder.createdAt).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
+
+    const handleCompleteClick = () => {
+      // Check if order requires verification
+      if (firstOrder.verificationCode && !firstOrder.isVerified) {
+        setShowOtpModal(true);
+      } else {
+        // Old orders without verification can be completed directly
+        onUpdateStatus(orderGroup, "completed");
+      }
+    };
+
+    const handleVerifyAndComplete = async () => {
+      if (!otpInput || otpInput.length !== 6) {
+        toast.error("Please enter 6-digit verification code");
+        return;
+      }
+
+      setVerifying(true);
+      try {
+        // Verify OTP for all orders in the group
+        const verifyPromises = orderGroup.map((order) =>
+          api.post(`/api/orders/${order._id}/verify-completion`, { 
+            verificationCode: otpInput 
+          })
+        );
+        
+        await Promise.all(verifyPromises);
+        
+        // Update local state
+        const orderIds = orderGroup.map((o) => o._id);
+        setOrders((prev) =>
+          prev.map((x) => 
+            orderIds.includes(x._id) 
+              ? { ...x, status: "completed", isVerified: true } 
+              : x
+          )
+        );
+        
+        toast.success("Order completed successfully! 🎉");
+        setShowOtpModal(false);
+        setOtpInput("");
+      } catch (error) {
+        const message = error.response?.data?.message || "Invalid verification code";
+        toast.error(message);
+      } finally {
+        setVerifying(false);
+      }
+    };
 
     return (
       <div style={styles.orderGroupCard}>
@@ -750,6 +1410,10 @@ export default function SellerDashboard() {
             <p style={styles.orderGroupMeta}>
               Customer: {customerName} • {orderDate}
             </p>
+            <p style={{ ...styles.orderGroupMeta, marginTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14 }}>📍</span>
+              <strong>Delivery:</strong> {deliveryHostel}, Room {deliveryRoom}
+            </p>
           </div>
           <div style={styles.orderGroupTotal}>
             ₹{totalAmount}
@@ -759,7 +1423,7 @@ export default function SellerDashboard() {
         {/* Order Items */}
         <div style={styles.orderItemsContainer}>
           {orderGroup.map((order) => (
-            <div key={order._id} style={styles.orderItem}>
+            <div key={order._id} style={styles.orderItemCard}>
               <img
                 src={getImageUrl(order.sellerProduct_id?.product_id?.image)}
                 alt=""
@@ -784,25 +1448,193 @@ export default function SellerDashboard() {
                 onClick={() => onUpdateStatus(orderGroup, "accepted")}
                 style={styles.acceptBtn}
               >
-                ✅ Accept Order
+                <Icon name="check" size={16} /> Accept Order
               </button>
               <button
                 onClick={() => onUpdateStatus(orderGroup, "rejected")}
                 style={styles.rejectBtn}
               >
-                ❌ Reject Order
+                <Icon name="x" size={16} /> Reject Order
               </button>
             </>
           )}
           {firstOrder.status === "accepted" && (
             <button
-              onClick={() => onUpdateStatus(orderGroup, "completed")}
+              onClick={handleCompleteClick}
               style={styles.completeBtn}
             >
-              🎉 Mark Complete
+              <Icon name="party" size={16} /> Mark Complete
             </button>
           )}
         </div>
+
+        {/* OTP Verification Modal */}
+        {showOtpModal && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999,
+              backdropFilter: "blur(4px)",
+            }}
+            onClick={() => setShowOtpModal(false)}
+          >
+            <div
+              style={{
+                background: "#ffffff",
+                borderRadius: "20px",
+                padding: "40px",
+                maxWidth: "480px",
+                width: "90%",
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+                animation: "slideIn 0.3s ease",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ textAlign: "center", marginBottom: "32px" }}>
+                <div style={{ fontSize: "64px", marginBottom: "16px" }}>🔐</div>
+                <h3
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: "700",
+                    color: "#1e293b",
+                    marginBottom: "8px",
+                  }}
+                >
+                  Verify Order Completion
+                </h3>
+                <p style={{ fontSize: "14px", color: "#64748b", lineHeight: "1.6" }}>
+                  Ask the customer for their 6-digit verification code
+                  <br />
+                  to complete this order safely
+                </p>
+              </div>
+
+              <div style={{ marginBottom: "24px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "14px",
+                    fontWeight: "600",
+                    color: "#475569",
+                    marginBottom: "12px",
+                  }}
+                >
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  value={otpInput}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+                    setOtpInput(value);
+                  }}
+                  placeholder="Enter 6-digit code"
+                  maxLength={6}
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    padding: "16px 20px",
+                    fontSize: "24px",
+                    fontWeight: "700",
+                    textAlign: "center",
+                    letterSpacing: "12px",
+                    border: "3px solid #e2e8f0",
+                    borderRadius: "12px",
+                    outline: "none",
+                    fontFamily: "monospace",
+                    transition: "all 0.3s ease",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#6366f1";
+                    e.target.style.boxShadow = "0 0 0 4px rgba(99, 102, 241, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#e2e8f0";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  onClick={() => {
+                    setShowOtpModal(false);
+                    setOtpInput("");
+                  }}
+                  disabled={verifying}
+                  style={{
+                    flex: 1,
+                    padding: "14px 24px",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    border: "2px solid #e2e8f0",
+                    borderRadius: "12px",
+                    background: "#ffffff",
+                    color: "#64748b",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "#f8fafc";
+                    e.target.style.borderColor = "#cbd5e1";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "#ffffff";
+                    e.target.style.borderColor = "#e2e8f0";
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleVerifyAndComplete}
+                  disabled={verifying || otpInput.length !== 6}
+                  style={{
+                    flex: 1,
+                    padding: "14px 24px",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    border: "none",
+                    borderRadius: "12px",
+                    background:
+                      verifying || otpInput.length !== 6
+                        ? "#cbd5e1"
+                        : "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                    color: "#ffffff",
+                    cursor: verifying || otpInput.length !== 6 ? "not-allowed" : "pointer",
+                    transition: "all 0.2s ease",
+                    boxShadow:
+                      verifying || otpInput.length !== 6
+                        ? "none"
+                        : "0 4px 12px rgba(99, 102, 241, 0.4)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!verifying && otpInput.length === 6) {
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow = "0 6px 16px rgba(99, 102, 241, 0.5)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = "translateY(0)";
+                    e.target.style.boxShadow =
+                      verifying || otpInput.length !== 6
+                        ? "none"
+                        : "0 4px 12px rgba(99, 102, 241, 0.4)";
+                  }}
+                >
+                  {verifying ? "Verifying..." : "Complete Order"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -814,14 +1646,14 @@ const styles = {
   dashboardWrapper: {
     display: "flex",
     minHeight: "100vh",
-    background: "#f8fafc",
+    background: "#ffffff",
   },
   
-  // Sidebar Styles
+  // Sidebar Styles - Light Theme
   sidebar: {
-    width: 280,
-    background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)",
-    boxShadow: "4px 0 24px rgba(0,0,0,0.1)",
+    width: 260,
+    background: "#ffffff",
+    boxShadow: "0 0 0 1px #e5e7eb",
     display: "flex",
     flexDirection: "column",
     position: "sticky",
@@ -830,94 +1662,89 @@ const styles = {
     overflow: "auto",
   },
   sidebarHeader: {
-    padding: "24px 20px",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
+    padding: "20px 16px",
+    borderBottom: "1px solid #e5e7eb",
   },
   logoSection: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   logoIcon: {
-    fontSize: 36,
-    filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
+    fontSize: 28,
+    color: "#6366f1",
   },
   sidebarTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 700,
-    color: "#fff",
-    marginBottom: 4,
+    color: "#111827",
+    marginBottom: 2,
   },
   sidebarSubtitle: {
-    fontSize: 12,
-    color: "#94a3b8",
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: 500,
   },
   sidebarNav: {
     flex: 1,
-    padding: "20px 12px",
+    padding: "16px 12px",
     display: "flex",
     flexDirection: "column",
-    gap: 8,
+    gap: 4,
   },
   sidebarItem: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
-    padding: "14px 16px",
+    gap: 10,
+    padding: "10px 12px",
     background: "transparent",
-    border: "none",
-    borderRadius: 12,
+    border: "1px solid transparent",
+    borderRadius: 8,
     cursor: "pointer",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 500,
-    color: "#cbd5e1",
-    transition: "all 0.3s ease",
+    color: "#4b5563",
     position: "relative",
     textAlign: "left",
   },
   sidebarItemActive: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
-    padding: "14px 16px",
-    background: "rgba(99, 102, 241, 0.15)",
-    border: "none",
-    borderRadius: 12,
+    gap: 10,
+    padding: "10px 12px",
+    background: "#6366f1",
+    border: "1px solid #6366f1",
+    borderRadius: 8,
     cursor: "pointer",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 600,
-    color: "#fff",
-    boxShadow: "0 4px 16px rgba(99,102,241,0.2)",
+    color: "#ffffff",
     position: "relative",
     textAlign: "left",
   },
   sidebarIcon: {
-    fontSize: 20,
+    fontSize: 18,
   },
   sidebarLabel: {
     flex: 1,
   },
   activeIndicator: {
-    width: 4,
-    height: 20,
-    background: "#6366f1",
-    borderRadius: 4,
-    position: "absolute",
-    right: 8,
+    display: "none",
   },
   sidebarFooter: {
-    padding: "20px 12px",
-    borderTop: "1px solid rgba(255,255,255,0.1)",
+    padding: "16px 12px",
+    borderTop: "1px solid #e5e7eb",
+    background: "#f9fafb",
   },
   sellerInfoCard: {
-    padding: 16,
-    background: "rgba(255,255,255,0.05)",
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.1)",
+    padding: 12,
+    background: "#ffffff",
+    borderRadius: 8,
+    border: "1px solid #e5e7eb",
   },
   infoLabel: {
-    fontSize: 11,
-    color: "#94a3b8",
+    fontSize: 10,
+    color: "#6b7280",
     fontWeight: 600,
     textTransform: "uppercase",
     letterSpacing: "0.5px",
@@ -925,126 +1752,266 @@ const styles = {
   },
   infoValue: {
     fontSize: 13,
-    color: "#fff",
-    fontWeight: 500,
+    color: "#111827",
+    fontWeight: 600,
   },
 
-  // Main Content Area
+  // Main Content Area - Light Theme
   mainContent: {
     flex: 1,
-    padding: 32,
+    padding: 28,
     overflow: "auto",
+    background: "#f9fafb",
   },
   statsGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: 20,
-    marginBottom: 32,
+    gap: 16,
+    marginBottom: 24,
   },
   statCard: {
-    padding: 24,
-    borderRadius: 16,
-    color: "#fff",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-    transition: "transform 0.3s ease",
+    padding: 20,
+    borderRadius: 12,
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    color: "#111827",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
     cursor: "pointer",
   },
+  statCardHover: {
+    transform: "translateY(-2px)",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  },
   statIcon: {
-    fontSize: 40,
-    marginBottom: 12,
+    fontSize: 32,
+    marginBottom: 10,
+    color: "#6366f1",
   },
   statValue: {
-    fontSize: 32,
-    fontWeight: 800,
-    marginBottom: 8,
+    fontSize: 28,
+    fontWeight: 700,
+    marginBottom: 6,
+    color: "#111827",
   },
   statTitle: {
-    fontSize: 14,
-    opacity: 0.9,
+    fontSize: 13,
+    color: "#6b7280",
     fontWeight: 500,
   },
   contentCard: {
     background: "#fff",
-    borderRadius: 20,
-    boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
     overflow: "hidden",
   },
   contentHeader: {
-    padding: "24px 32px",
-    borderBottom: "2px solid #f1f5f9",
-    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+    padding: "20px 24px",
+    borderBottom: "1px solid #e5e7eb",
+    background: "#ffffff",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   contentTitle: {
-    fontSize: 24,
+    fontSize: 20,
+    fontWeight: 600,
+    color: "#111827",
+  },
+  notificationWrapper: {
+    position: "relative",
+  },
+  notificationButton: {
+    position: "relative",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: "50%",
+    width: 40,
+    height: 40,
+    fontSize: 18,
+    color: "#6366f1",
+    cursor: "pointer",
+    transition: "background 0.15s ease, border-color 0.15s ease",
+  },
+  notificationButtonHover: {
+    background: "#f9fafb",
+    borderColor: "#d1d5db",
+  },
+  notificationBadge: {
+    position: "absolute",
+    top: -6,
+    right: -6,
+    background: "#ef4444",
+    color: "#fff",
+    borderRadius: "50%",
+    width: 18,
+    height: 18,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10,
     fontWeight: 700,
-    color: "#1e293b",
+    border: "2px solid #fff",
+  },
+  notificationDropdown: {
+    position: "absolute",
+    top: "calc(100% + 8px)",
+    right: 0,
+    width: 380,
+    maxHeight: 480,
+    background: "#fff",
+    borderRadius: 12,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+    zIndex: 1000,
+    overflow: "hidden",
+    border: "1px solid #e5e7eb",
+  },
+  notificationHeader: {
+    padding: "14px 18px",
+    borderBottom: "1px solid #e5e7eb",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    background: "#f9fafb",
+  },
+  notificationTitle: {
+    fontSize: 15,
+    fontWeight: 600,
+    color: "#111827",
+    margin: 0,
+  },
+  markAllReadBtn: {
+    background: "transparent",
+    border: "none",
+    color: "#6366f1",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    padding: "4px 8px",
+    borderRadius: 6,
+    transition: "all 0.2s",
+  },
+  notificationList: {
+    maxHeight: 400,
+    overflowY: "auto",
+  },
+  emptyNotifications: {
+    padding: 40,
+    textAlign: "center",
+    color: "#9ca3af",
+  },
+  notificationItem: {
+    padding: "16px 20px",
+    borderBottom: "1px solid #f3f4f6",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    transition: "background 0.2s",
+  },
+  notificationContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  notificationMessage: {
+    fontSize: 14,
+    color: "#374151",
+    marginBottom: 6,
+    lineHeight: 1.5,
+  },
+  notificationTime: {
+    fontSize: 12,
+    color: "#9ca3af",
+  },
+  notificationActions: {
+    display: "flex",
+    gap: 8,
+  },
+  markReadBtn: {
+    background: "#10b981",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    width: 28,
+    height: 28,
+    fontSize: 14,
+    cursor: "pointer",
+    transition: "all 0.2s",
+  },
+  deleteBtn: {
+    background: "#ef4444",
+    color: "#fff",
+    border: "none",
+    borderRadius: 6,
+    width: 28,
+    height: 28,
+    fontSize: 14,
+    cursor: "pointer",
+    transition: "all 0.2s",
   },
   contentBody: {
-    padding: 32,
+    padding: 24,
     minHeight: 400,
   },
 
   // Legacy styles (keeping for compatibility)
   container: {
     minHeight: "100vh",
-    background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-    padding: "32px 24px",
+    background: "#f9fafb",
+    padding: "24px 20px",
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   mainTitle: {
-    fontSize: 32,
-    fontWeight: 800,
-    color: "#1f2937",
-    marginBottom: 8,
+    fontSize: 28,
+    fontWeight: 700,
+    color: "#111827",
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#6b7280",
   },
   tabs: {
     display: "flex",
-    gap: 12,
-    marginBottom: 24,
+    gap: 8,
+    marginBottom: 20,
     flexWrap: "wrap",
   },
   tab: {
-    padding: "12px 24px",
-    border: "2px solid #e5e7eb",
+    padding: "10px 20px",
+    border: "1px solid #e5e7eb",
     background: "#fff",
-    borderRadius: 12,
+    borderRadius: 8,
     cursor: "pointer",
-    fontSize: 15,
-    fontWeight: 600,
+    fontSize: 14,
+    fontWeight: 500,
     color: "#6b7280",
-    transition: "all 0.3s ease",
+    transition: "all 0.2s ease",
   },
   tabActive: {
-    padding: "12px 24px",
-    border: "2px solid #6366f1",
+    padding: "10px 20px",
+    border: "1px solid #6366f1",
     background: "#6366f1",
-    borderRadius: 12,
+    borderRadius: 8,
     cursor: "pointer",
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: 600,
     color: "#fff",
-    boxShadow: "0 4px 12px rgba(99,102,241,0.3)",
   },
   tabContent: {
     minHeight: 400,
   },
   card: {
     background: "#fff",
-    borderRadius: 16,
-    padding: 24,
-    boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
+    borderRadius: 12,
+    padding: 20,
+    border: "1px solid #e5e7eb",
   },
   cardTitle: {
-    fontSize: 20,
-    fontWeight: 700,
-    marginBottom: 16,
-    color: "#1f2937",
+    fontSize: 18,
+    fontWeight: 600,
+    marginBottom: 14,
+    color: "#111827",
   },
   overviewGrid: {
     display: "grid",
@@ -1171,11 +2138,15 @@ const styles = {
   },
   listingCard: {
     background: "#fff",
-    border: "2px solid #f3f4f6",
-    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    borderRadius: 12,
     overflow: "hidden",
-    transition: "all 0.3s ease",
+    transition: "border-color 0.2s ease, box-shadow 0.2s ease",
     cursor: "pointer",
+  },
+  listingCardHover: {
+    borderColor: "#cbd5e1",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
   },
   listingImage: {
     width: "100%",
@@ -1211,8 +2182,12 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
+    transition: "background 0.15s ease",
   },
-  deleteBtn: {
+  editBtnHover: {
+    background: "#e5e7eb",
+  },
+  deleteBtnSecondary: {
     flex: 1,
     padding: 8,
     background: "#fee2e2",
@@ -1222,6 +2197,10 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
+    transition: "background 0.15s ease",
+  },
+  deleteBtnHover: {
+    background: "#fecaca",
   },
   editForm: {
     display: "flex",
@@ -1248,6 +2227,10 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
+    transition: "background 0.15s ease",
+  },
+  saveBtnHover: {
+    background: "#059669",
   },
   cancelBtn: {
     flex: 1,
@@ -1258,6 +2241,10 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
+    transition: "background 0.15s ease",
+  },
+  cancelBtnHover: {
+    background: "#e5e7eb",
   },
   ordersContainer: {
     display: "flex",
@@ -1325,7 +2312,7 @@ const styles = {
     gap: 12,
     marginBottom: 16,
   },
-  orderItem: {
+  orderItemCard: {
     display: "flex",
     alignItems: "center",
     gap: 12,

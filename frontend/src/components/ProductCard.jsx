@@ -112,7 +112,11 @@ export default function ProductCard({ product, onClick }) {
           loading="lazy"
           src={
             product.image
-              ? `http://localhost:5001${product.image}`
+              ? product.image.startsWith('http')
+                ? product.image
+                : product.image.startsWith('/')
+                ? `http://localhost:5001${product.image}`
+                : `http://localhost:5001/uploads/${product.image}`
               : "https://via.placeholder.com/400x300?text=No+Image"
           }
           alt={product.name || "Product image"}

@@ -147,11 +147,13 @@ export default function AuthProvider({ children }) {
     const name = localStorage.getItem("mc_name");
     const role = localStorage.getItem("mc_role");
     const userId = localStorage.getItem("mc_userId");
-    const sellerStatus = localStorage.getItem("mc_sellerStatus"); // ✅ load sellerStatus
+    const sellerStatus = localStorage.getItem("mc_sellerStatus");
+    const hostelBlock = localStorage.getItem("mc_hostelBlock");
+    const roomNumber = localStorage.getItem("mc_roomNumber");
 
     if (token) {
       setToken(token);
-      setUser({ name, role, userId, sellerStatus });
+      setUser({ name, role, userId, sellerStatus, hostelBlock, roomNumber });
     }
     setLoading(false);
   }, []);
@@ -159,16 +161,18 @@ export default function AuthProvider({ children }) {
   // Login
   const login = async (email, password) => {
     const res = await api.post("/api/auth/login", { email, password });
-    const { token, name, role, userId, sellerStatus } = res.data;
+    const { token, name, role, userId, sellerStatus, hostelBlock, roomNumber } = res.data;
 
     localStorage.setItem("mc_token", token);
     localStorage.setItem("mc_name", name);
     localStorage.setItem("mc_role", role);
     localStorage.setItem("mc_userId", userId);
     localStorage.setItem("mc_sellerStatus", sellerStatus || "");
+    localStorage.setItem("mc_hostelBlock", hostelBlock || "");
+    localStorage.setItem("mc_roomNumber", roomNumber || "");
 
     setToken(token);
-    setUser({ name, role, userId, sellerStatus });
+    setUser({ name, role, userId, sellerStatus, hostelBlock, roomNumber });
     return res.data;
   };
 
@@ -184,16 +188,18 @@ export default function AuthProvider({ children }) {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    const { token, name, role, userId, sellerStatus } = res.data;
+    const { token, name, role, userId, sellerStatus, hostelBlock, roomNumber } = res.data;
 
     localStorage.setItem("mc_token", token);
     localStorage.setItem("mc_name", name);
     localStorage.setItem("mc_role", role);
     localStorage.setItem("mc_userId", userId);
     localStorage.setItem("mc_sellerStatus", sellerStatus || "");
+    localStorage.setItem("mc_hostelBlock", hostelBlock || "");
+    localStorage.setItem("mc_roomNumber", roomNumber || "");
 
     setToken(token);
-    setUser({ name, role, userId, sellerStatus });
+    setUser({ name, role, userId, sellerStatus, hostelBlock, roomNumber });
     return res.data;
   };
 
@@ -204,6 +210,8 @@ export default function AuthProvider({ children }) {
     localStorage.removeItem("mc_role");
     localStorage.removeItem("mc_userId");
     localStorage.removeItem("mc_sellerStatus");
+    localStorage.removeItem("mc_hostelBlock");
+    localStorage.removeItem("mc_roomNumber");
     setToken(null);
     setUser(null);
   };

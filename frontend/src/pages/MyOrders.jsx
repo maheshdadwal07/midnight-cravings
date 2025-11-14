@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import api from "../services/api";
 import { AuthContext } from "../context/AuthProvider";
+import Icon from "../components/Icon";
 
 export default function MyOrders() {
   const { user } = useContext(AuthContext);
@@ -33,6 +34,8 @@ export default function MyOrders() {
           createdAt: item.createdAt,
           status: item.status,
           paymentStatus: item.paymentStatus,
+          verificationCode: item.verificationCode, // Add verification code
+          isVerified: item.isVerified, // Add verification status
           items: [],
           totalAmount: 0,
         });
@@ -100,7 +103,7 @@ export default function MyOrders() {
             fontSize: 16,
           }}
         >
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
+          <div style={{ fontSize: 48, marginBottom: 16 }}><Icon name="package" size={48} /></div>
           <p style={{ margin: 0 }}>No orders yet.</p>
           <p style={{ margin: "8px 0 0", fontSize: 14 }}>
             Start ordering your favorite food!
@@ -165,6 +168,329 @@ export default function MyOrders() {
                 </div>
               </div>
 
+              {/* Order Tracking Timeline */}
+              <div 
+                style={{ 
+                  padding: "32px 24px", 
+                  background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                  borderTop: "1px solid #e2e8f0",
+                  borderBottom: "1px solid #e2e8f0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: 28,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span style={{ fontSize: "18px" }}>📍</span>
+                  Order Tracking
+                </div>
+                
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "flex-start", 
+                  justifyContent: "space-between", 
+                  position: "relative",
+                  padding: "0 8px",
+                }}>
+                  {/* Progress Line Background */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "28px",
+                      left: "calc(16.66% + 8px)",
+                      right: "calc(16.66% + 8px)",
+                      height: "4px",
+                      background: "#e2e8f0",
+                      borderRadius: "2px",
+                      transform: "translateY(-50%)",
+                      zIndex: 0,
+                    }}
+                  />
+                  
+                  {/* Progress Line Active */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "28px",
+                      left: "calc(16.66% + 8px)",
+                      width: (() => {
+                        const statuses = ["pending", "accepted", "completed"];
+                        const currentIndex = statuses.indexOf(order.status);
+                        if (currentIndex === -1 || order.status === "rejected" || order.status === "cancelled") {
+                          return order.status === "rejected" || order.status === "cancelled" ? "25%" : "0%";
+                        }
+                        const total = statuses.length - 1;
+                        return `calc(${(currentIndex / total) * 100}% - ${((currentIndex / total) * 16.66)}%)`;
+                      })(),
+                      height: "4px",
+                      background: order.status === "rejected" || order.status === "cancelled" 
+                        ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
+                        : "linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                      borderRadius: "2px",
+                      transform: "translateY(-50%)",
+                      zIndex: 0,
+                      transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: order.status === "rejected" || order.status === "cancelled"
+                        ? "0 2px 8px rgba(239, 68, 68, 0.3)"
+                        : "0 2px 8px rgba(99, 102, 241, 0.3)",
+                    }}
+                  />
+
+                  {/* Animated Pulse for Active Stage */}
+                  {(() => {
+                    const statuses = ["pending", "accepted", "completed"];
+                    const currentIndex = statuses.indexOf(order.status);
+                    if (currentIndex !== -1) {
+                      const leftPosition = 16.66 + (currentIndex * 33.33);
+                      return (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "28px",
+                            left: `calc(${leftPosition}% + 8px)`,
+                            width: "56px",
+                            height: "56px",
+                            borderRadius: "50%",
+                            background: "rgba(99, 102, 241, 0.2)",
+                            transform: "translate(-50%, -50%)",
+                            zIndex: 0,
+                            animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                          }}
+                        />
+                      );
+                    }
+                  })()}
+
+                  {/* Status Nodes */}
+                  {["pending", "accepted", "completed"].map((status, idx) => {
+                    const isActive = order.status === status;
+                    const isPassed = ["pending", "accepted", "completed"].indexOf(order.status) > idx;
+                    const isRejected = order.status === "rejected" || order.status === "cancelled";
+                    
+                    return (
+                      <div
+                        key={status}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          flex: 1,
+                          position: "relative",
+                          zIndex: 1,
+                        }}
+                      >
+                        {/* Outer Ring for Active */}
+                        {isActive && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              width: "64px",
+                              height: "64px",
+                              borderRadius: "50%",
+                              border: "3px solid rgba(99, 102, 241, 0.3)",
+                              animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
+                            }}
+                          />
+                        )}
+                        
+                        {/* Circle */}
+                        <div
+                          style={{
+                            width: isActive ? "56px" : "48px",
+                            height: isActive ? "56px" : "48px",
+                            borderRadius: "50%",
+                            background: isRejected && idx === 1
+                              ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                              : isActive
+                              ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)"
+                              : isPassed
+                              ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
+                              : "#ffffff",
+                            border: isActive || isPassed || (isRejected && idx === 1) ? "none" : "4px solid #e2e8f0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                            boxShadow: isActive
+                              ? "0 8px 20px rgba(99, 102, 241, 0.5), 0 4px 8px rgba(99, 102, 241, 0.3)"
+                              : isPassed || (isRejected && idx === 1)
+                              ? "0 4px 12px rgba(99, 102, 241, 0.25)"
+                              : "0 2px 4px rgba(0, 0, 0, 0.05)",
+                            marginBottom: "16px",
+                            transform: isActive ? "scale(1.05)" : "scale(1)",
+                          }}
+                        >
+                          {isPassed && !isActive ? (
+                            <span style={{ 
+                              color: "#fff", 
+                              fontSize: "22px",
+                              fontWeight: "bold",
+                            }}>✓</span>
+                          ) : isRejected && status === "accepted" ? (
+                            <span style={{ 
+                              color: "#fff", 
+                              fontSize: "22px",
+                              fontWeight: "bold",
+                            }}>✕</span>
+                          ) : (
+                            <span
+                              style={{
+                                color: isActive || isPassed ? "#fff" : "#94a3b8",
+                                fontSize: isActive ? "26px" : "22px",
+                              }}
+                            >
+                              {status === "pending" ? <Icon name="cart" size={isActive ? 26 : 22} /> : status === "accepted" ? <Icon name="chef" size={isActive ? 26 : 22} /> : <Icon name="party" size={isActive ? 26 : 22} />}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Label */}
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: isActive ? 700 : 600,
+                            color: isActive 
+                              ? "#6366f1" 
+                              : isPassed || (isRejected && status === "accepted")
+                              ? "#475569" 
+                              : "#94a3b8",
+                            textTransform: "capitalize",
+                            textAlign: "center",
+                            maxWidth: "90px",
+                            lineHeight: "1.4",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          {isRejected && status === "accepted" 
+                            ? order.status === "cancelled" ? "Cancelled" : "Rejected"
+                            : status === "pending" 
+                            ? "Order Placed" 
+                            : status === "accepted"
+                            ? "Preparing"
+                            : "Delivered"}
+                        </div>
+                        
+                        {/* Timestamp Hint */}
+                        {isActive && (
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              color: "#6366f1",
+                              textAlign: "center",
+                              background: "rgba(99, 102, 241, 0.1)",
+                              padding: "4px 10px",
+                              borderRadius: "12px",
+                              marginTop: "4px",
+                            }}
+                          >
+                            Current
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <style>
+                {`
+                  @keyframes pulse {
+                    0%, 100% {
+                      opacity: 1;
+                    }
+                    50% {
+                      opacity: 0.4;
+                    }
+                  }
+                  
+                  @keyframes ping {
+                    0% {
+                      transform: scale(1);
+                      opacity: 1;
+                    }
+                    75%, 100% {
+                      transform: scale(1.3);
+                      opacity: 0;
+                    }
+                  }
+                `}
+              </style>
+
+              {/* Verification Code Section - Only show if order has verification code and is not completed */}
+              {order.verificationCode && !order.isVerified && order.status !== "completed" && (
+                <div 
+                  style={{ 
+                    padding: "24px 20px",
+                    background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                    borderTop: "1px solid #f59e0b",
+                    borderBottom: "1px solid #f59e0b",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "#92400e",
+                      marginBottom: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ fontSize: "20px" }}>🔐</span>
+                    Order Verification Code
+                  </div>
+                  
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      padding: "20px",
+                      borderRadius: "12px",
+                      border: "3px dashed #f59e0b",
+                      textAlign: "center",
+                      boxShadow: "0 4px 12px rgba(245, 158, 11, 0.2)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "36px",
+                        fontWeight: "800",
+                        color: "#f59e0b",
+                        letterSpacing: "8px",
+                        fontFamily: "monospace",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      {order.verificationCode}
+                    </div>
+                    
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "#92400e",
+                        fontWeight: 600,
+                        lineHeight: "1.5",
+                      }}
+                    >
+                      ⚠️ Share this code with the seller for order completion
+                      <br />
+                      <span style={{ fontSize: "12px", fontWeight: 500, color: "#78350f" }}>
+                        Keep this code private and only share at delivery
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Order Items */}
               <div style={{ padding: "20px" }}>
                 <div
@@ -191,6 +517,25 @@ export default function MyOrders() {
                         gap: "12px",
                       }}
                     >
+                      {item.sellerProduct_id?.product_id?.image && (
+                        <img
+                          src={
+                            item.sellerProduct_id.product_id.image.startsWith('http')
+                              ? item.sellerProduct_id.product_id.image
+                              : item.sellerProduct_id.product_id.image.startsWith('/')
+                              ? `http://localhost:5001${item.sellerProduct_id.product_id.image}`
+                              : `http://localhost:5001/uploads/${item.sellerProduct_id.product_id.image}`
+                          }
+                          alt={item.sellerProduct_id?.product_id?.name || "Product"}
+                          style={{
+                            width: 60,
+                            height: 60,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                            border: "1px solid #e5e7eb",
+                          }}
+                        />
+                      )}
                       <div style={{ flex: 1 }}>
                         <div
                           style={{

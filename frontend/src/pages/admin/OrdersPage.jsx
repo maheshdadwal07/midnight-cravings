@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
+import Icon from "../../components/Icon";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -67,7 +68,11 @@ export default function OrdersPage() {
                 </div>
                 
                 <div className="order-buyer">
-                  <strong>Customer:</strong> {firstOrder.user_id?.name || "Unknown"}
+                  <strong>Customer:</strong> {firstOrder.buyerName || firstOrder.user_id?.name || "Unknown"}
+                </div>
+                
+                <div className="order-delivery">
+                  <strong><Icon name="location" size={14} /> Delivery:</strong> {firstOrder.deliveryHostel || "Not provided"}, Room {firstOrder.deliveryRoom || "N/A"}
                 </div>
                 
                 <div className="order-date">
@@ -76,11 +81,35 @@ export default function OrdersPage() {
                 
                 <div className="order-items">
                   <strong>Items:</strong>
-                  {orderGroup.map((o) => (
-                    <div key={o._id} className="order-item">
-                      • {o.sellerProduct_id?.product_id?.name || "Product"} x {o.quantity}
-                    </div>
-                  ))}
+                  {orderGroup.map((o) => {
+                    const image = o.sellerProduct_id?.product_id?.image;
+                    const imageUrl = image
+                      ? image.startsWith('http')
+                        ? image
+                        : image.startsWith('/')
+                        ? `http://localhost:5001${image}`
+                        : `http://localhost:5001/uploads/${image}`
+                      : null;
+                    
+                    return (
+                      <div key={o._id} className="order-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                        {imageUrl && (
+                          <img 
+                            src={imageUrl} 
+                            alt={o.sellerProduct_id?.product_id?.name || "Product"}
+                            style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 8, border: '1px solid #e5e7eb' }}
+                          />
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <div>• {o.sellerProduct_id?.product_id?.name || "Product"} x {o.quantity}</div>
+                          <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
+                            <Icon name="store" size={12} /> Seller: {o.sellerProduct_id?.seller_id?.name || o.seller_id?.name || "Unknown"}
+                            {(o.sellerProduct_id?.seller_id?.shopName || o.seller_id?.shopName) && ` (${o.sellerProduct_id?.seller_id?.shopName || o.seller_id?.shopName})`}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 
                 <div className="order-total">
@@ -185,10 +214,18 @@ export default function OrdersPage() {
         }
 
         .order-buyer,
+        .order-delivery,
         .order-date,
         .order-total {
           font-size: 14px;
           color: #4b5563;
+        }
+        
+        .order-delivery {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          padding: 8px 12px;
+          border-radius: 8px;
+          border-left: 3px solid #6366f1;
         }
         
         .order-items {

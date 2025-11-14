@@ -362,6 +362,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { AuthContext } from "../context/AuthProvider";
 import { useNavigate } from "react-router-dom";
+import Icon from "../components/Icon";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -370,11 +371,11 @@ const baseSchema = yup.object({
   email: yup.string().email("Invalid email").required("Email required"),
   password: yup.string().min(4, "Too short").required("Password required"),
   role: yup.string().oneOf(["user", "seller"]).required(),
+  hostelBlock: yup.string().required("Hostel required"),
+  roomNumber: yup.string().required("Room number required"),
 });
 
 const sellerSchema = yup.object({
-  hostelBlock: yup.string().required("Hostel Block required"),
-  roomNumber: yup.string().required("Room Number required"),
   upiId: yup.string().required("UPI ID required"),
   collegeId: yup
     .mixed()
@@ -436,7 +437,9 @@ export default function Register() {
     <div style={styles.page}>
       <div style={styles.card}>
         <h2 style={styles.title}>Register</h2>
-        <p style={styles.subtitle}>Create your account ✨</p>
+        <p style={styles.subtitle}>
+          Create your account <Icon name="sparkles" size={18} style={{ display: "inline-block", verticalAlign: "middle" }} />
+        </p>
 
         {role === "seller" && (
           <div style={styles.progress}>
@@ -517,6 +520,43 @@ export default function Register() {
                     </select>
                   </div>
 
+                  <div style={styles.field}>
+                    <select
+                      {...register("hostelBlock")}
+                      style={{
+                        ...styles.select,
+                        borderColor: errors.hostelBlock ? "#ef4444" : "#e5e7eb",
+                      }}
+                    >
+                      <option value="">Select Your Hostel</option>
+                      <option value="Archimedes A">Archimedes A</option>
+                      <option value="Archimedes B">Archimedes B</option>
+                      <option value="Marco Polo">Marco Polo</option>
+                      <option value="Francaline A">Francaline A</option>
+                      <option value="Francaline B">Francaline B</option>
+                      <option value="Aristotle">Aristotle</option>
+                      <option value="Alfred Nobel A">Alfred Nobel A</option>
+                      <option value="Alfred Nobel B">Alfred Nobel B</option>
+                    </select>
+                    {errors.hostelBlock && (
+                      <p style={styles.error}>{errors.hostelBlock.message}</p>
+                    )}
+                  </div>
+
+                  <div style={styles.field}>
+                    <input
+                      {...register("roomNumber")}
+                      placeholder="Room Number (e.g., 205)"
+                      style={{
+                        ...styles.input,
+                        borderColor: errors.roomNumber ? "#ef4444" : "#e5e7eb",
+                      }}
+                    />
+                    {errors.roomNumber && (
+                      <p style={styles.error}>{errors.roomNumber.message}</p>
+                    )}
+                  </div>
+
                   <div style={{ marginTop: 24 }}>
                     {role === "user" ? (
                       <button
@@ -544,38 +584,6 @@ export default function Register() {
 
               {step === 2 && role === "seller" && (
                 <>
-                  <div style={styles.field}>
-                    <input
-                      {...register("hostelBlock")}
-                      placeholder="Hostel Block"
-                      style={{
-                        ...styles.input,
-                        borderColor: errors.hostelBlock
-                          ? "#ef4444"
-                          : "#e5e7eb",
-                      }}
-                    />
-                    {errors.hostelBlock && (
-                      <p style={styles.error}>{errors.hostelBlock.message}</p>
-                    )}
-                  </div>
-
-                  <div style={styles.field}>
-                    <input
-                      {...register("roomNumber")}
-                      placeholder="Room Number"
-                      style={{
-                        ...styles.input,
-                        borderColor: errors.roomNumber
-                          ? "#ef4444"
-                          : "#e5e7eb",
-                      }}
-                    />
-                    {errors.roomNumber && (
-                      <p style={styles.error}>{errors.roomNumber.message}</p>
-                    )}
-                  </div>
-
                   <div style={styles.field}>
                     <input
                       {...register("upiId")}

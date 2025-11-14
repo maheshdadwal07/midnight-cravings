@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
 import Modal from "../../components/Modal";
+import Icon from "../../components/Icon";
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -74,24 +75,24 @@ export default function UsersPage() {
   return (
     <div className="container">
       <div className="header">
-        <h2 className="mainTitle">👥 Buyers Management</h2>
+        <h2 className="mainTitle"><Icon name="users" size={32} /> Buyers Management</h2>
         <div className="stats-cards">
           <div className="stat-card total">
-            <div className="stat-icon">�</div>
+            <div className="stat-icon"><Icon name="users" size={36} /></div>
             <div className="stat-details">
               <div className="stat-label">Total Buyers</div>
               <div className="stat-value">{statistics.total}</div>
             </div>
           </div>
           <div className="stat-card buyers">
-            <div className="stat-icon">✅</div>
+            <div className="stat-icon"><Icon name="check" size={36} /></div>
             <div className="stat-details">
               <div className="stat-label">Active Buyers</div>
               <div className="stat-value">{statistics.total - statistics.bannedUsers}</div>
             </div>
           </div>
           <div className="stat-card banned">
-            <div className="stat-icon">🚫</div>
+            <div className="stat-icon"><Icon name="x" size={36} /></div>
             <div className="stat-details">
               <div className="stat-label">Banned Buyers</div>
               <div className="stat-value">{statistics.bannedUsers}</div>
@@ -121,7 +122,7 @@ export default function UsersPage() {
 
       {filteredUsers.length === 0 ? (
         <div className="emptyState">
-          <div className="emptyIcon">🔍</div>
+          <div className="emptyIcon"><Icon name="users" size={48} /></div>
           <h3>No buyers found</h3>
           <p>Try adjusting your search</p>
         </div>
@@ -135,7 +136,7 @@ export default function UsersPage() {
                 </div>
                 {u.banned && (
                   <div className="role-badge banned-badge-header">
-                    🚫 Banned
+                    <Icon name="x" size={12} /> Banned
                   </div>
                 )}
               </div>
@@ -144,19 +145,19 @@ export default function UsersPage() {
                 <div className="user-email">{u.email}</div>
                 {u.hostelBlock && (
                   <div className="user-detail">
-                    <span className="detail-icon">🏢</span>
+                    <span className="detail-icon"><Icon name="store" size={16} /></span>
                     Hostel: {u.hostelBlock}
                   </div>
                 )}
                 {u.roomNumber && (
                   <div className="user-detail">
-                    <span className="detail-icon">🚪</span>
+                    <span className="detail-icon"><Icon name="door" size={16} /></span>
                     Room: {u.roomNumber}
                   </div>
                 )}
                 {u.phoneNumber && (
                   <div className="user-detail">
-                    <span className="detail-icon">�</span>
+                    <span className="detail-icon"><Icon name="phone" size={16} /></span>
                     Phone: {u.phoneNumber}
                   </div>
                 )}
@@ -169,7 +170,7 @@ export default function UsersPage() {
                     setViewModal(true);
                   }}
                 >
-                  👁️ View
+                  <Icon name="eye" size={16} /> View
                 </button>
                 <button
                   className="btn btnRed"
@@ -178,7 +179,7 @@ export default function UsersPage() {
                     setDeleteModal(true);
                   }}
                 >
-                  🗑️ Delete
+                  <Icon name="trash" size={16} /> Delete
                 </button>
               </div>
             </div>
@@ -221,7 +222,7 @@ export default function UsersPage() {
               <div className="view-row">
                 <strong>Ban Status:</strong> 
                 <span style={{ color: target.banned ? '#ef4444' : '#10b981', fontWeight: 600 }}>
-                  {target.banned ? '🚫 Banned' : '✅ Active'}
+                  {target.banned ? <><Icon name="x" size={16} /> Banned</> : <><Icon name="check" size={16} /> Active</>}
                 </span>
               </div>
               <div className="view-row">
@@ -235,7 +236,7 @@ export default function UsersPage() {
       <Modal
         open={deleteModal}
         onClose={() => setDeleteModal(false)}
-        title="⚠️ Confirm Delete"
+        title={<><Icon name="warning" size={20} /> Confirm Delete</>}
       >
         <p style={{ fontSize: '15px', lineHeight: '1.6', color: '#6b7280' }}>
           Are you sure you want to delete user <strong style={{ color: '#111827' }}>{target?.name}</strong>?
@@ -286,62 +287,40 @@ export default function UsersPage() {
         }
 
         .stat-card {
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          border-radius: 16px;
+          background: #ffffff;
+          border: 2px solid #e5e7eb;
+          border-radius: 12px;
           padding: 20px;
           display: flex;
           align-items: center;
           gap: 16px;
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-          transition: all 0.3s;
-          color: white;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 12px 24px rgba(102, 126, 234, 0.3);
         }
 
         .stat-card.buyers {
-          background: linear-gradient(135deg, #3b82f6, #2563eb);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-
-        .stat-card.buyers:hover {
-          box-shadow: 0 12px 24px rgba(59, 130, 246, 0.3);
+          border-color: #3b82f6;
         }
 
         .stat-card.sellers {
-          background: linear-gradient(135deg, #10b981, #059669);
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-        }
-
-        .stat-card.sellers:hover {
-          box-shadow: 0 12px 24px rgba(16, 185, 129, 0.3);
+          border-color: #10b981;
         }
 
         .stat-card.admins {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
-        }
-
-        .stat-card.admins:hover {
-          box-shadow: 0 12px 24px rgba(245, 158, 11, 0.3);
+          border-color: #f59e0b;
         }
 
         .stat-card.banned {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
-        }
-
-        .stat-card.banned:hover {
-          box-shadow: 0 12px 24px rgba(239, 68, 68, 0.3);
+          border-color: #ef4444;
         }
 
         .stat-icon {
-          font-size: 36px;
+          font-size: 32px;
           line-height: 1;
         }
+
+        .stat-card.buyers .stat-icon { color: #3b82f6; }
+        .stat-card.sellers .stat-icon { color: #10b981; }
+        .stat-card.admins .stat-icon { color: #f59e0b; }
+        .stat-card.banned .stat-icon { color: #ef4444; }
 
         .stat-details {
           flex: 1;
@@ -349,7 +328,7 @@ export default function UsersPage() {
 
         .stat-label {
           font-size: 13px;
-          opacity: 0.9;
+          color: #6b7280;
           font-weight: 500;
         }
 
@@ -357,6 +336,7 @@ export default function UsersPage() {
           font-size: 28px;
           font-weight: 700;
           margin-top: 4px;
+          color: #111827;
         }
 
         .filters {
@@ -470,33 +450,29 @@ export default function UsersPage() {
           overflow: hidden;
         }
 
-        .user-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 12px 24px rgba(0,0,0,0.12);
-          border-color: #6366f1;
-        }
+
 
         .user-header {
-          background: linear-gradient(135deg, #667eea, #764ba2);
-          padding: 24px;
+          background: #f9fafb;
+          padding: 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           position: relative;
+          border-bottom: 2px solid #e5e7eb;
         }
 
         .user-avatar {
-          width: 60px;
-          height: 60px;
+          width: 50px;
+          height: 50px;
           border-radius: 50%;
-          background: rgba(255, 255, 255, 0.95);
+          background: #6366f1;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
+          font-size: 20px;
           font-weight: 700;
-          color: #667eea;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          color: #ffffff;
         }
 
         .banned-badge-header {
@@ -572,18 +548,13 @@ export default function UsersPage() {
           box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
 
-        .btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
         .btnView {
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          background: #6366f1;
           color: #fff;
         }
 
         .btnRed {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
+          background: #ef4444;
           color: #fff;
         }
 
@@ -591,10 +562,6 @@ export default function UsersPage() {
           background: #f3f4f6;
           color: #111;
           border: 2px solid #e5e7eb;
-        }
-
-        .btnGray:hover {
-          background: #e5e7eb;
         }
 
         .actionsRight {

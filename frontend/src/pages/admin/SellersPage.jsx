@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "../../services/api";
 import toast from "react-hot-toast";
+import Icon from "../../components/Icon";
 
 export default function SellersPage() {
   const [sellers, setSellers] = useState([]);
@@ -120,7 +121,7 @@ export default function SellersPage() {
     <div className="container">
       {/* Header with Stats */}
       <div className="header">
-        <h2 className="mainTitle">Sellers Management 🏪</h2>
+        <h2 className="mainTitle">Sellers Management <Icon name="store" size={28} /></h2>
         <div className="stats">
           <div className="statCard">
             <div className="statNumber">{stats.total}</div>
@@ -149,7 +150,7 @@ export default function SellersPage() {
       <div className="filters">
         <input
           type="text"
-          placeholder="🔍 Search by name, email, or shop..."
+          placeholder="Search by name, email, or shop..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="searchInput"
@@ -182,7 +183,7 @@ export default function SellersPage() {
               setBanFilter("");
             }}
           >
-            ✕ Clear Filters
+            <Icon name="x" size={14} /> Clear Filters
           </button>
         )}
       </div>
@@ -196,7 +197,7 @@ export default function SellersPage() {
         <p>No sellers found.</p>
       ) : filteredSellers.length === 0 ? (
         <div className="emptyState">
-          <div className="emptyIcon">🔍</div>
+          <div className="emptyIcon"><Icon name="store" size={48} /></div>
           <h3>No sellers found</h3>
           <p>Try adjusting your search or filters</p>
         </div>
@@ -207,7 +208,11 @@ export default function SellersPage() {
               s.sellerStatus?.toLowerCase().replace(/\s+/g, "_") ||
               "pending_verification";
             const imageSrc = s.collegeIdUrl
-              ? `http://localhost:5001${s.collegeIdUrl}`
+              ? s.collegeIdUrl.startsWith('http')
+                ? s.collegeIdUrl
+                : s.collegeIdUrl.startsWith('/')
+                ? `http://localhost:5001${s.collegeIdUrl}`
+                : `http://localhost:5001/uploads/${s.collegeIdUrl}`
               : "https://via.placeholder.com/150?text=No+ID";
 
             return (
@@ -298,7 +303,11 @@ export default function SellersPage() {
             <img
               src={
                 currentSeller.collegeIdUrl
-                  ? `http://localhost:5001${currentSeller.collegeIdUrl}`
+                  ? currentSeller.collegeIdUrl.startsWith('http')
+                    ? currentSeller.collegeIdUrl
+                    : currentSeller.collegeIdUrl.startsWith('/')
+                    ? `http://localhost:5001${currentSeller.collegeIdUrl}`
+                    : `http://localhost:5001/uploads/${currentSeller.collegeIdUrl}`
                   : "https://via.placeholder.com/200?text=No+Image"
               }
               alt={currentSeller.name}
@@ -355,40 +364,45 @@ export default function SellersPage() {
         }
 
         .statCard {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: #ffffff;
+          border: 2px solid #6366f1;
           padding: 16px 24px;
           border-radius: 12px;
-          color: white;
           min-width: 120px;
           text-align: center;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
 
         .statCard.pending {
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          border-color: #f59e0b;
         }
 
         .statCard.approved {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          border-color: #10b981;
         }
 
         .statCard.rejected {
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          border-color: #ef4444;
         }
 
         .statCard.banned {
-          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          border-color: #6b7280;
         }
 
         .statNumber {
           font-size: 28px;
           font-weight: 700;
           margin-bottom: 4px;
+          color: #111827;
         }
+
+        .statCard.pending .statNumber { color: #f59e0b; }
+        .statCard.approved .statNumber { color: #10b981; }
+        .statCard.rejected .statNumber { color: #ef4444; }
+        .statCard.banned .statNumber { color: #6b7280; }
 
         .statLabel {
           font-size: 12px;
-          opacity: 0.9;
+          color: #6b7280;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
@@ -413,7 +427,6 @@ export default function SellersPage() {
         .searchInput:focus {
           border-color: #6366f1;
           outline: none;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
         .filterSelect {
@@ -444,7 +457,7 @@ export default function SellersPage() {
           transition: all 0.2s;
         }
 
-        .clearBtn:hover {
+        .clearBtn.disabled {
           background: #e5e7eb;
           color: #374151;
         }
@@ -497,11 +510,7 @@ export default function SellersPage() {
           border: 2px solid #f3f4f6;
         }
 
-        .seller-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-          border-color: #6366f1;
-        }
+
 
         .seller-image-container {
           position: relative;
@@ -526,19 +535,17 @@ export default function SellersPage() {
           font-weight: 600;
           color: #fff;
           font-size: 12px;
-          backdrop-filter: blur(10px);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
           text-transform: capitalize;
         }
 
         .status-badge.pending_verification { 
-          background: linear-gradient(135deg, #f59e0b, #d97706);
+          background: #f59e0b;
         }
         .status-badge.approved { 
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: #10b981;
         }
         .status-badge.rejected { 
-          background: linear-gradient(135deg, #ef4444, #dc2626);
+          background: #ef4444;
         }
 
         .seller-info {
@@ -547,7 +554,7 @@ export default function SellersPage() {
           flex-direction: column;
           gap: 8px;
           font-size: 14px;
-          background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+          background: #f9fafb;
           flex: 1;
         }
 
@@ -604,25 +611,20 @@ export default function SellersPage() {
           box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
 
-        .btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
         .btn.approve { 
-          background: linear-gradient(135deg, #10b981, #059669);
+          background: #10b981;
           color: #fff;
         }
         .btn.reject { 
-          background: linear-gradient(135deg, #ef4444, #dc2626);
+          background: #ef4444;
           color: #fff;
         }
         .btn.ban { 
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
+          background: #6366f1;
           color: #fff;
         }
         .btn.view { 
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          background: #2563eb;
           color: #fff;
         }
 

@@ -1,14 +1,16 @@
 import React, { useEffect, useState, useContext } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import api from "../services/api";
 import { AuthContext } from "../context/AuthProvider";
 import { CartContext } from "../context/CartProvider";
 import ProductCard from "../components/ProductCard";
+import Icon from "../components/Icon";
 import toast from "react-hot-toast";
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [product, setProduct] = useState(null);
   const [sellers, setSellers] = useState([]);
   const [similarProducts, setSimilarProducts] = useState([]);
@@ -38,14 +40,30 @@ export default function ProductDetail() {
 
         const found = pRes.data.find((p) => (p._id || p.id) === id);
         setProduct(found);
-        setSellers(sRes.data || []);
-        if (sRes.data.length) setSelectedSeller(sRes.data[0]);
-        if (found) {
-          setMainImage(
-            found.image
-              ? `http://localhost:5001${found.image}`
-              : "https://via.placeholder.com/500"
+        
+        // Get hostel filter from URL if present
+        const params = new URLSearchParams(location.search);
+        const hostelFilter = params.get("hostel");
+        
+        // Filter sellers by hostel if filter is applied
+        let filteredSellers = sRes.data || [];
+        if (hostelFilter) {
+          filteredSellers = filteredSellers.filter(
+            (seller) => seller.seller_id?.hostelBlock === hostelFilter
           );
+        }
+        
+        setSellers(filteredSellers);
+        if (filteredSellers.length) setSelectedSeller(filteredSellers[0]);
+        if (found) {
+          const imageUrl = found.image
+            ? found.image.startsWith('http')
+              ? found.image
+              : found.image.startsWith('/')
+              ? `http://localhost:5001${found.image}`
+              : `http://localhost:5001/uploads/${found.image}`
+            : "https://via.placeholder.com/500";
+          setMainImage(imageUrl);
           
           // Get similar products (same category, exclude current product)
           const similar = pRes.data
@@ -82,7 +100,7 @@ export default function ProductDetail() {
     return () => {
       mounted = false;
     };
-  }, [id]);
+  }, [id, location.search]);
 
   if (loading) return <div className="container">Loading...</div>;
   if (!product) return <div className="container">Product not found</div>;
@@ -189,26 +207,34 @@ export default function ProductDetail() {
             </div>
             {product.images && product.images.length > 1 && (
               <div style={{ display: "flex", gap: 12 }}>
-                {product.images.map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={`http://localhost:5001${img}`}
-                    alt={`thumb-${idx}`}
-                    onClick={() => setMainImage(`http://localhost:5001${img}`)}
-                    style={{
-                      width: 80,
-                      height: 80,
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      cursor: "pointer",
-                      border:
-                        mainImage === `http://localhost:5001${img}`
-                          ? "3px solid #6366f1"
-                          : "2px solid #e5e7eb",
-                      transition: "all 0.2s",
-                    }}
-                  />
-                ))}
+                {product.images.map((img, idx) => {
+                  const imgUrl = img.startsWith('http')
+                    ? img
+                    : img.startsWith('/')
+                    ? `http://localhost:5001${img}`
+                    : `http://localhost:5001/uploads/${img}`;
+                  
+                  return (
+                    <img
+                      key={idx}
+                      src={imgUrl}
+                      alt={`thumb-${idx}`}
+                      onClick={() => setMainImage(imgUrl)}
+                      style={{
+                        width: 80,
+                        height: 80,
+                        objectFit: "cover",
+                        borderRadius: 8,
+                        cursor: "pointer",
+                        border:
+                          mainImage === imgUrl
+                            ? "3px solid #6366f1"
+                            : "2px solid #e5e7eb",
+                        transition: "all 0.2s",
+                      }}
+                    />
+                  );
+                })}
               </div>
             )}
           </div>
@@ -343,6 +369,12 @@ export default function ProductDetail() {
                           <div style={{ fontSize: 13, color: "#6b7280", marginTop: 2 }}>
                             {isBanned ? "Currently unavailable" : `Stock: ${s.stock} units`}
                           </div>
+                          {s.seller_id?.hostelBlock && (
+                            <div style={{ fontSize: 12, color: "#6366f1", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                              🏢 {s.seller_id.hostelBlock}
+                              {s.seller_id?.roomNumber && ` - Room ${s.seller_id.roomNumber}`}
+                            </div>
+                          )}
                         </div>
                         <div
                           style={{
@@ -494,7 +526,15 @@ export default function ProductDetail() {
                       : "0 4px 12px rgba(99, 102, 241, 0.3)";
                   }}
                 >
-                  {isInCart ? "✓ Go to Cart" : "🛒 Add to Cart"}
+                  {isInCart ? (
+                    <>
+                      <Icon name="check" size={18} style={{ marginRight: 8 }} /> Go to Cart
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="cart" size={18} style={{ marginRight: 8 }} /> Add to Cart
+                    </>
+                  )}
                 </button>
               </>
             )}

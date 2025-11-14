@@ -33,6 +33,7 @@ export default function Products() {
     const params = new URLSearchParams(location.search);
     const search = params.get("search")?.toLowerCase() || "";
     const category = params.get("category") || "";
+    const hostel = params.get("hostel") || "";
 
     let result = [...products];
 
@@ -52,6 +53,28 @@ export default function Products() {
 
     if (category) {
       result = result.filter((p) => p.category === category);
+    }
+
+    if (hostel) {
+      result = result
+        .map((p) => {
+          // Filter sellers to only include those from the selected hostel
+          if (p.sellers && Array.isArray(p.sellers)) {
+            const filteredSellers = p.sellers.filter(
+              (seller) => seller.seller_id?.hostelBlock === hostel
+            );
+            return {
+              ...p,
+              sellers: filteredSellers,
+              sellerCount: filteredSellers.length,
+            };
+          }
+          return p;
+        })
+        .filter((p) => {
+          // Only keep products that have at least one seller from the selected hostel
+          return p.sellers && p.sellers.length > 0;
+        });
     }
 
     // Add sorting logic
@@ -101,6 +124,7 @@ export default function Products() {
           display: "flex",
           gap: 16,
           marginBottom: 20,
+          flexWrap: "wrap",
         }}
       >
         <select
@@ -136,6 +160,37 @@ export default function Products() {
           <option value="Fast Food">Fast Food</option>
           <option value="Healthy">Healthy</option>
           <option value="Dairy">Dairy</option>
+        </select>
+
+        <select
+          value={new URLSearchParams(location.search).get("hostel") || ""}
+          onChange={(e) => {
+            const params = new URLSearchParams(location.search);
+            if (e.target.value) {
+              params.set("hostel", e.target.value);
+            } else {
+              params.delete("hostel");
+            }
+            navigate(`?${params.toString()}`);
+          }}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid #d1d5db",
+            backgroundColor: "#fff",
+            fontSize: "14px",
+            minWidth: "160px"
+          }}
+        >
+          <option value="">All Hostels</option>
+          <option value="Archimedes A">Archimedes A</option>
+          <option value="Archimedes B">Archimedes B</option>
+          <option value="Marco Polo">Marco Polo</option>
+          <option value="Francaline A">Francaline A</option>
+          <option value="Francaline B">Francaline B</option>
+          <option value="Aristotle">Aristotle</option>
+          <option value="Alfred Nobel A">Alfred Nobel A</option>
+          <option value="Alfred Nobel B">Alfred Nobel B</option>
         </select>
 
         <select
@@ -181,7 +236,14 @@ export default function Products() {
             <ProductCard
               key={p._id || p.id}
               product={p}
-              onClick={() => navigate(`/products/${p._id || p.id}`)}
+              onClick={() => {
+                const params = new URLSearchParams(location.search);
+                const hostel = params.get("hostel");
+                const destination = hostel 
+                  ? `/products/${p._id || p.id}?hostel=${encodeURIComponent(hostel)}`
+                  : `/products/${p._id || p.id}`;
+                navigate(destination);
+              }}
             />
           ))
         )}

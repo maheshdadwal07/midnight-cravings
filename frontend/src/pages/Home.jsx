@@ -4,6 +4,7 @@ import ProductCard from "../components/ProductCard";
 import { CartContext } from "../context/CartProvider";
 import { AuthContext } from "../context/AuthProvider";
 import api from "../services/api";
+import Icon from "../components/Icon";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -15,18 +16,18 @@ export default function Home() {
 
   // Define categories to display
   const categories = [
-    { name: "Snacks", icon: "🍿" },
-    { name: "Beverages", icon: "🥤" },
-    { name: "Biscuits", icon: "🍪" },
-    { name: "Chocolates", icon: "🍫" },
-    { name: "Chips", icon: "🥔" },
-    { name: "Noodles", icon: "🍜" },
-    { name: "Desserts", icon: "🍰" },
-    { name: "Ice Cream", icon: "🍦" },
-    { name: "Sandwiches", icon: "🥪" },
-    { name: "Fast Food", icon: "🍔" },
-    { name: "Healthy", icon: "🥗" },
-    { name: "Dairy", icon: "🥛" },
+    { name: "Snacks", icon: "snack" },
+    { name: "Beverages", icon: "beverage" },
+    { name: "Biscuits", icon: "cookie" },
+    { name: "Chocolates", icon: "chocolate" },
+    { name: "Chips", icon: "snack" },
+    { name: "Noodles", icon: "noodle" },
+    { name: "Desserts", icon: "cake" },
+    { name: "Ice Cream", icon: "icecream" },
+    { name: "Sandwiches", icon: "sandwich" },
+    { name: "Fast Food", icon: "burger" },
+    { name: "Healthy", icon: "salad" },
+    { name: "Dairy", icon: "milk" },
   ];
   // Redirect seller/admin to their respective dashboards
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function Home() {
       {/* HERO SECTION */}
             <div className="hero">
         <div className="hero-left">
-          <div className="hero-badge">🍿 Late Night Snacks Delivered</div>
+          <div className="hero-badge"><Icon name="snack" size={20} /> Late Night Snacks Delivered</div>
           <h1 className="hero-title">
             Midnight Cravings?
             <br />
@@ -90,14 +91,14 @@ export default function Home() {
           </h1>
           <p className="hero-subtitle">
             Quick delivery of your favorite snacks, drinks, and munchies right to your hostel room. 
-            Available 24/7 because hunger doesn't sleep! 🌙
+            Available 24/7 because hunger doesn't sleep! <Icon name="moon" size={20} />
           </p>
           <div className="hero-buttons">
             <button 
               className="btn-primary"
               onClick={() => navigate('/products')}
             >
-              🛒 Order Now
+              <Icon name="cart" size={20} /> Order Now
             </button>
             <button 
               className="btn-outline"
@@ -130,7 +131,7 @@ export default function Home() {
             <div className="phone-notch"></div>
             <div className="phone-screen">
             <div className="notification notif-1">
-                <span className="notif-icon">🎉</span>
+                <span className="notif-icon"><Icon name="party" size={35} /></span>
                 <div className="notif-content">
                   <span className="notif-title">Order Confirmed!</span>
                   <span className="notif-text">Your pizza is ready</span>
@@ -138,7 +139,7 @@ export default function Home() {
               </div>
               
               <div className="notification notif-2">
-                <span className="notif-icon">🛵</span>
+                <span className="notif-icon"><Icon name="package" size={35} /></span>
                 <div className="notif-content">
                   <span className="notif-title">Out for Delivery</span>
                   <span className="notif-text">Arriving in 12 min</span>
@@ -154,7 +155,7 @@ export default function Home() {
             
             <div className="order-items">
               <div className="order-item item-1">
-                <div className="item-image">🍕</div>
+                <div className="item-image"><Icon name="snack" size={40} /></div>
                 <div className="item-details">
                   <span className="item-name">Margherita Pizza</span>
                   <span className="item-quantity">× 2</span>
@@ -163,7 +164,7 @@ export default function Home() {
               </div>
               
               <div className="order-item item-2">
-                <div className="item-image">🥤</div>
+                <div className="item-image"><Icon name="beverage" size={40} /></div>
                 <div className="item-details">
                   <span className="item-name">Cold Drink</span>
                   <span className="item-quantity">× 1</span>
@@ -172,7 +173,7 @@ export default function Home() {
               </div>
               
               <div className="order-item item-3">
-                <div className="item-image">�</div>
+                <div className="item-image"><Icon name="snack" size={40} /></div>
                 <div className="item-details">
                   <span className="item-name">French Fries</span>
                   <span className="item-quantity">× 1</span>
@@ -188,8 +189,8 @@ export default function Home() {
                   <div className="delivery-scooter">🛵</div>
                 </div>
                 <div className="location-markers">
-                  <div className="marker start">🏪</div>
-                  <div className="marker end">📍</div>
+                  <div className="marker start"><Icon name="store" size={38} /></div>
+                  <div className="marker end"><Icon name="target" size={38} /></div>
                 </div>
               </div>
               
@@ -218,12 +219,12 @@ export default function Home() {
           </div>
           
           {/* Orbiting food items */}
-          <div className="food-orbit orbit-1">🍕</div>
-          <div className="food-orbit orbit-2">🍔</div>
-          <div className="food-orbit orbit-3">�</div>
-          <div className="food-orbit orbit-4">🥤</div>
-          <div className="food-orbit orbit-5">�</div>
-          <div className="food-orbit orbit-6">🍩</div>
+          <div className="food-orbit orbit-1"><Icon name="snack" size={48} /></div>
+          <div className="food-orbit orbit-2"><Icon name="burger" size={48} /></div>
+          <div className="food-orbit orbit-3"><Icon name="snack" size={48} /></div>
+          <div className="food-orbit orbit-4"><Icon name="beverage" size={48} /></div>
+          <div className="food-orbit orbit-5"><Icon name="chocolate" size={48} /></div>
+          <div className="food-orbit orbit-6"><Icon name="cake" size={48} /></div>
         </div>
       </div>
       
@@ -264,7 +265,7 @@ export default function Home() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 32 }}>{cat.icon}</span>
+                    <span style={{ fontSize: 32 }}><Icon name={cat.icon} size={32} /></span>
                     <h2 style={{ margin: 0 }}>{cat.name}</h2>
                   </div>
                   <button
@@ -313,7 +314,7 @@ export default function Home() {
       <section className="become-seller">
         <div className="seller-wrapper">
           <div className="seller-content">
-            <div className="seller-badge">🚀 Start Selling Today</div>
+            <div className="seller-badge"><Icon name="fire" size={20} /> Start Selling Today</div>
             <h2 className="seller-title">
               Turn Your Passion Into <span>Profit</span>
             </h2>
@@ -323,21 +324,21 @@ export default function Home() {
             </p>
             <div className="seller-features">
               <div className="feature-item">
-                <span className="feature-icon">💰</span>
+                <span className="feature-icon"><Icon name="dollar" size={32} /></span>
                 <div>
                   <h4>Earn More</h4>
                   <p>Competitive commission rates</p>
                 </div>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">📊</span>
+                <span className="feature-icon"><Icon name="chart" size={32} /></span>
                 <div>
                   <h4>Easy Management</h4>
                   <p>Intuitive seller dashboard</p>
                 </div>
               </div>
               <div className="feature-item">
-                <span className="feature-icon">🎯</span>
+                <span className="feature-icon"><Icon name="target" size={32} /></span>
                 <div>
                   <h4>Reach Customers</h4>
                   <p>Access to large user base</p>
@@ -354,17 +355,17 @@ export default function Home() {
           </div>
           <div className="seller-visual">
             <div className="visual-card card-1">
-              <div className="card-icon">📈</div>
+              <div className="card-icon"><Icon name="chart" size={48} /></div>
               <div className="card-stat">+250%</div>
               <div className="card-label">Growth</div>
             </div>
             <div className="visual-card card-2">
-              <div className="card-icon">👥</div>
+              <div className="card-icon"><Icon name="users" size={48} /></div>
               <div className="card-stat">5000+</div>
               <div className="card-label">Active Users</div>
             </div>
             <div className="visual-card card-3">
-              <div className="card-icon">⭐</div>
+              <div className="card-icon"><Icon name="star" size={48} /></div>
               <div className="card-stat">4.8/5</div>
               <div className="card-label">Rating</div>
             </div>

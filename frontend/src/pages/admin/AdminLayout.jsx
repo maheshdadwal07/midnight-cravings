@@ -8,10 +8,40 @@ export default function AdminLayout() {
   const { user, logout } = useContext(AuthContext);
 
   const navItems = [
-    { path: "/admin/users", label: "Users", icon: "👥" },
-    { path: "/admin/sellers", label: "Sellers", icon: "🏪" },
-    { path: "/admin/products", label: "Products", icon: "🍫" },
-    { path: "/admin/orders", label: "Orders", icon: "📦" },
+    { path: "/admin/users", label: "Users", icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    )},
+    { path: "/admin/sellers", label: "Sellers", icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    )},
+    { path: "/admin/products", label: "Products", icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+        <line x1="12" y1="22.08" x2="12" y2="12"/>
+      </svg>
+    )},
+    { path: "/admin/orders", label: "Orders", icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+      </svg>
+    )},
+    { path: "/admin/product-requests", label: "Product Requests", icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+    )},
   ];
 
   const handleLogout = () => {
@@ -25,7 +55,11 @@ export default function AdminLayout() {
       <aside className="sidebar">
         <div className="sidebar-top">
           <div className="logo-container">
-            <div className="logo-icon">🌙</div>
+            {/* <div className="logo-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </div> */}
             <h2 className="logo">Midnight Cravings</h2>
             <div className="logo-subtitle">Admin Panel</div>
           </div>
@@ -68,7 +102,12 @@ export default function AdminLayout() {
         {/* Logout Button */}
         <div className="sidebar-bottom">
           <button className="logout-btn" onClick={handleLogout}>
-            <span>🚪</span> Logout
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Logout
           </button>
         </div>
       </aside>
@@ -80,99 +119,89 @@ export default function AdminLayout() {
 
       {/* Internal CSS */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         .admin-container {
           display: flex;
           min-height: 100vh;
-          font-family: 'Poppins', sans-serif;
-          background: #f3f4f6;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          background: #f9fafb;
         }
 
-        /* Sidebar */
+        /* Sidebar - Clean Minimal */
         .sidebar {
-          width: 280px;
-          background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
-          color: white;
-          padding: 0;
+          width: 260px;
+          background: #ffffff;
+          color: #1f2937;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+          border-right: 1px solid #e5e7eb;
           position: sticky;
           top: 0;
           height: 100vh;
         }
 
-        /* Stack top section neatly */
         .sidebar-top {
           display: flex;
           flex-direction: column;
-          gap: 24px;
-          padding: 28px 20px;
+          gap: 20px;
+          padding: 24px 16px;
           flex: 1;
           overflow-y: auto;
         }
 
         .logo-container {
           text-align: center;
-          padding: 20px 10px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 16px;
-          backdrop-filter: blur(10px);
+          padding: 24px 16px;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .logo-icon {
-          font-size: 40px;
+          font-size: 32px;
           margin-bottom: 8px;
+          color: #6366f1;
         }
 
         .logo {
-          font-size: 22px;
+          font-size: 18px;
           font-weight: 700;
-          color: #fff;
-          letter-spacing: 0.5px;
+          color: #111827;
+          letter-spacing: -0.5px;
           margin: 0 0 4px 0;
         }
 
         .logo-subtitle {
-          font-size: 12px;
-          color: #c7d2fe;
+          font-size: 11px;
+          color: #6b7280;
           text-transform: uppercase;
           letter-spacing: 1px;
-          font-weight: 600;
+          font-weight: 500;
         }
 
-        /* Admin Info */
+        /* Admin Info - Simple Card */
         .admin-info {
           display: flex;
           align-items: center;
-          background: rgba(255, 255, 255, 0.08);
-          padding: 16px;
-          border-radius: 14px;
-          gap: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          transition: all 0.3s ease;
-        }
-
-        .admin-info:hover {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: rgba(255, 255, 255, 0.2);
+          background: #f9fafb;
+          padding: 12px;
+          border-radius: 8px;
+          gap: 12px;
+          border: 1px solid #e5e7eb;
         }
 
         .admin-avatar {
-          width: 50px;
-          height: 50px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #818cf8, #6366f1);
+          background: #6366f1;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-weight: 700;
-          font-size: 1.1rem;
+          font-weight: 600;
+          font-size: 0.9rem;
           flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
 
         .admin-details {
@@ -184,32 +213,32 @@ export default function AdminLayout() {
         }
 
         .admin-name {
-          font-weight: 700;
-          color: #fff;
-          font-size: 0.95rem;
+          font-weight: 600;
+          color: #111827;
+          font-size: 0.9rem;
         }
 
         .admin-role {
           font-size: 0.7rem;
-          color: #a5b4fc;
+          color: #6366f1;
           text-transform: uppercase;
           letter-spacing: 0.5px;
           font-weight: 600;
         }
 
         .admin-email {
-          font-size: 0.75rem;
-          color: #cbd5e1;
+          font-size: 0.7rem;
+          color: #6b7280;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
         .nav-section-title {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
-          color: #a5b4fc;
-          letter-spacing: 1px;
+          color: #9ca3af;
+          letter-spacing: 1.2px;
           text-transform: uppercase;
           margin-bottom: 8px;
           padding: 0 4px;
@@ -218,59 +247,51 @@ export default function AdminLayout() {
         nav {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
 
         .nav-link {
           display: flex;
           align-items: center;
           gap: 12px;
-          color: #e0e7ff;
-          padding: 12px 16px;
-          border-radius: 10px;
+          color: #4b5563;
+          padding: 10px 12px;
+          border-radius: 8px;
           font-weight: 500;
           text-decoration: none;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
           position: relative;
+          font-size: 14px;
         }
 
         .nav-icon {
-          font-size: 20px;
-          transition: transform 0.3s ease;
+          font-size: 18px;
         }
 
         .nav-label {
           flex: 1;
-          font-size: 14px;
         }
 
         .nav-indicator {
-          color: #fff;
-          font-size: 8px;
+          color: #6366f1;
+          font-size: 6px;
         }
 
         .nav-link:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          transform: translateX(4px);
-        }
-
-        .nav-link:hover .nav-icon {
-          transform: scale(1.2);
+          background: #f3f4f6;
+          color: #111827;
         }
 
         .nav-link.active {
-          background: linear-gradient(135deg, #818cf8, #6366f1);
+          background: #6366f1;
           color: white;
           font-weight: 600;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
         }
 
         /* Sidebar Bottom */
         .sidebar-bottom {
-          padding: 20px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(0, 0, 0, 0.2);
+          padding: 16px;
+          border-top: 1px solid #e5e7eb;
         }
 
         /* Logout Button */
@@ -279,36 +300,31 @@ export default function AdminLayout() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          color: white;
-          border: none;
-          padding: 14px 16px;
-          border-radius: 10px;
+          gap: 8px;
+          background: #ffffff;
+          color: #ef4444;
+          border: 1px solid #e5e7eb;
+          padding: 12px;
+          border-radius: 8px;
           font-weight: 600;
           font-size: 14px;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          transition: all 0.2s ease;
         }
 
         .logout-btn:hover {
-          background: linear-gradient(135deg, #dc2626, #b91c1c);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
-        }
-
-        .logout-btn:active {
-          transform: translateY(0);
+          background: #fef2f2;
+          border-color: #fecaca;
+          color: #dc2626;
         }
 
         /* Main content */
         .content {
           flex: 1;
-          padding: 36px;
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+          padding: 32px;
+          background: #ffffff;
           overflow-y: auto;
-          transition: all 0.3s ease;
+          min-height: 100vh;
         }
 
         /* Scrollbar styling */

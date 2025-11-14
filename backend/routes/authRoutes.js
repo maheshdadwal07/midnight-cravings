@@ -153,6 +153,13 @@ router.post("/signup", upload.single("collegeId"), async (req, res) => {
         .json({ message: "Name, email, and password are required" });
     }
 
+    // Hostel and room are required for all users (buyers and sellers)
+    if (!hostelBlock || !roomNumber) {
+      return res
+        .status(400)
+        .json({ message: "Hostel and room number are required" });
+    }
+
     email = email.toLowerCase();
 
     // Prevent users from setting themselves as admin
@@ -167,25 +174,25 @@ router.post("/signup", upload.single("collegeId"), async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Base user object
+    // Base user object (hostel and room for everyone)
     const userData = {
       name,
       email,
       passwordHash,
       role: userRole,
+      hostelBlock,
+      roomNumber,
     };
 
     // Seller-specific fields
     if (userRole === "seller") {
-      if (!hostelBlock || !roomNumber || !upiId || !req.file) {
+      if (!upiId || !req.file) {
         return res.status(400).json({
           message:
-            "Hostel block, room number, UPI ID, and college ID image are required for seller signup",
+            "UPI ID and college ID image are required for seller signup",
         });
       }
 
-      userData.hostelBlock = hostelBlock;
-      userData.roomNumber = roomNumber;
       userData.upiId = upiId;
       userData.collegeIdUrl = `/uploads/${req.file.filename}`; // save path
       userData.shopName = shopName || "";
@@ -209,6 +216,8 @@ router.post("/signup", upload.single("collegeId"), async (req, res) => {
       role: newUser.role,
       token,
       sellerStatus: newUser.sellerStatus || null,
+      hostelBlock: newUser.hostelBlock || null,
+      roomNumber: newUser.roomNumber || null,
     });
   } catch (error) {
     res.status(500).json({ message: "Signup failed", error: error.message });
@@ -245,7 +254,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // Include sellerStatus in response so frontend knows
+    // Include sellerStatus and hostel info in response
     res.json({
       message: "Login successful",
       token,
@@ -253,6 +262,8 @@ router.post("/login", async (req, res) => {
       role: user.role,
       userId: user._id,
       sellerStatus: user.sellerStatus || null,
+      hostelBlock: user.hostelBlock || null,
+      roomNumber: user.roomNumber || null,
     });
   } catch (error) {
     res.status(500).json({ message: "Login failed", error: error.message });
