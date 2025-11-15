@@ -1,0 +1,720 @@
+import React, { useEffect, useState, useContext } from "react";
+import api from "../services/api";
+import { AuthContext } from "../context/AuthProvider";
+import Icon from "../components/Icon";
+import ReviewModal from "../components/ReviewModal";
+import toast from "react-hot-toast";
+
+export default function MyOrders() {
+  const { user } = useContext(AuthContext);
+  const [orders, setOrders] = useState([]);
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState(null);
+  const [reviewedOrders, setReviewedOrders] = useState(new Set());
+  const [expandedOrders, setExpandedOrders] = useState(new Set());
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+
+    fetchOrders();
+    fetchReviewedOrders();
+  }, [user]);
+
+  const fetchOrders = () => {
+    api
+      .get("/api/orders/my-orders")
+      .then((res) => {
+        // Group orders by razorpay_order_id or individual order ID
+        const groupedOrders = groupOrderItems(res.data);
+        setOrders(groupedOrders);
+      })
+      .catch((err) => console.error(err));
+  };
+
+  const fetchReviewedOrders = async () => {
+    try {
+      const res = await api.get("/api/reviews/my-reviews");
+      // Store as "itemId-sellerId" to track reviews per item-seller combination
+      const reviewedPairs = new Set(
+        res.data.map((r) => {
+          const itemId = r.order_id._id || r.order_id;
+          const sellerId = r.seller_id._id || r.seller_id;
+          return `${itemId}-${sellerId}`;
+        })
+      );
+      setReviewedOrders(reviewedPairs);
+    } catch (err) {
+      console.error("Failed to fetch reviews:", err);
+    }
+  };
+
+  const handleOpenReview = (orderItem) => {
+    setSelectedOrderForReview(orderItem);
+    setReviewModalOpen(true);
+  };
+
+  const handleReviewSuccess = async () => {
+    // Update reviewed orders first
+    await fetchReviewedOrders();
+    
+    // Check if there are more unreviewed items in the same order
+    if (selectedOrderForReview) {
+      const currentOrder = orders.find(order => 
+        order.items.some(item => item._id === selectedOrderForReview._id)
+      );
+      
+      if (currentOrder) {
+        // Get fresh reviewed item-seller pairs
+        const res = await api.get("/api/reviews/my-reviews");
+        const freshReviewedPairs = new Set(
+          res.data.map((r) => {
+            const itemId = r.order_id._id || r.order_id;
+            const sellerId = r.seller_id._id || r.seller_id;
+            return `${itemId}-${sellerId}`;
+          })
+        );
+        
+        const unreviewedItems = currentOrder.items.filter(item => {
+          if (!item.seller_id?._id) return false;
+          const pairKey = `${item._id}-${item.seller_id._id}`;
+          return !freshReviewedPairs.has(pairKey) && item._id !== selectedOrderForReview._id;
+        });
+        
+        if (unreviewedItems.length > 0) {
+          // Automatically open review for next seller
+          setTimeout(() => {
+            setSelectedOrderForReview(unreviewedItems[0]);
+            setReviewModalOpen(true);
+            toast.success("Review submitted! Please rate the next seller.");
+          }, 500);
+        } else {
+          toast.success("Thank you for your reviews!");
+        }
+      } else {
+        toast.success("Thank you for your review!");
+      }
+    }
+  };
+
+  const toggleOrderExpand = (orderId) => {
+    setExpandedOrders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
+
+  const filteredOrders = orders.filter(order => {
+    const matchesStatus = filterStatus === "all" || order.status === filterStatus;
+    const matchesSearch = searchQuery === "" || 
+      order.items.some(item => 
+        item.sellerProduct_id?.product_id?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      ) ||
+      `#${orders.length - orders.indexOf(order)}`.includes(searchQuery);
+    return matchesStatus && matchesSearch;
+  });
+
+  const statusCounts = {
+    all: orders.length,
+    pending: orders.filter(o => o.status === "pending").length,
+    accepted: orders.filter(o => o.status === "accepted").length,
+    completed: orders.filter(o => o.status === "completed").length,
+    cancelled: orders.filter(o => o.status === "cancelled" || o.status === "rejected").length,
+  };
+
+  // Group order items into proper orders
+  const groupOrderItems = (orderItems) => {
+    const orderMap = new Map();
+
+    orderItems.forEach((item) => {
+      // Use razorpay_order_id if available, otherwise use the individual order _id
+      const orderKey = item.razorpay_order_id || item._id;
+      
+      if (!orderMap.has(orderKey)) {
+        orderMap.set(orderKey, {
+          orderId: orderKey,
+          createdAt: item.createdAt,
+          status: item.status,
+          paymentStatus: item.paymentStatus,
+          verificationCode: item.verificationCode, // Add verification code
+          isVerified: item.isVerified, // Add verification status
+          items: [],
+          totalAmount: 0,
+        });
+      }
+
+      const order = orderMap.get(orderKey);
+      order.items.push(item);
+      order.totalAmount += item.totalPrice || 0;
+    });
+
+    return Array.from(orderMap.values()).sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      pending: "#f59e0b",
+      confirmed: "#3b82f6",
+      preparing: "#8b5cf6",
+      shipped: "#6366f1",
+      delivered: "#10b981",
+      cancelled: "#ef4444",
+    };
+    return colors[status?.toLowerCase()] || "#6b7280";
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (!user)
+    return (
+      <div style={{ padding: "32px", fontSize: 16, color: "#555" }}>
+        Please login to view orders.
+      </div>
+    );
+
+  return (
+    <div style={{ padding: "32px 16px", maxWidth: 900, margin: "auto" }}>
+      <h2
+        style={{
+          fontSize: 28,
+          fontWeight: 700,
+          marginBottom: 24,
+          color: "#1f2937",
+        }}
+      >
+        My Orders
+      </h2>
+
+      {orders.length === 0 ? (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "48px 16px",
+            color: "#6b7280",
+            fontSize: 16,
+          }}
+        >
+          <div style={{ fontSize: 48, marginBottom: 16 }}><Icon name="package" size={48} /></div>
+          <p style={{ margin: 0 }}>No orders yet.</p>
+          <p style={{ margin: "8px 0 0", fontSize: 14 }}>
+            Start ordering your favorite food!
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 24 }}>
+          {orders.map((order, idx) => (
+            <div
+              key={order.orderId}
+              style={{
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                background: "#fff",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                overflow: "hidden",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow =
+                  "0 8px 24px rgba(0,0,0,0.12)";
+                e.currentTarget.style.transform = "translateY(-2px)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow =
+                  "0 2px 8px rgba(0,0,0,0.08)";
+                e.currentTarget.style.transform = "translateY(0)";
+              }}
+            >
+              {/* Order Header */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  background: "#6366f1",
+                  color: "#fff",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.9, marginBottom: 4 }}>
+                    Order #{orders.length - idx}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>
+                    {formatDate(order.createdAt)}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: "6px 16px",
+                    borderRadius: 20,
+                    background: "rgba(255,255,255,0.25)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {order.status}
+                </div>
+              </div>
+
+              {/* Order Tracking Timeline */}
+              <div 
+                style={{ 
+                  padding: "32px 24px", 
+                  background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+                  borderTop: "1px solid #e2e8f0",
+                  borderBottom: "1px solid #e2e8f0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: 28,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                >
+                  <span style={{ fontSize: "18px" }}>📍</span>
+                  Order Tracking
+                </div>
+                
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "flex-start", 
+                  justifyContent: "space-between", 
+                  position: "relative",
+                  padding: "0 8px",
+                }}>
+                  {/* Progress Line Background */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "28px",
+                      left: "calc(16.66% + 8px)",
+                      right: "calc(16.66% + 8px)",
+                      height: "4px",
+                      background: "#e2e8f0",
+                      borderRadius: "2px",
+                      transform: "translateY(-50%)",
+                      zIndex: 0,
+                    }}
+                  />
+                  
+                  {/* Progress Line Active */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "28px",
+                      left: "calc(16.66% + 8px)",
+                      width: (() => {
+                        const statuses = ["pending", "accepted", "completed"];
+                        const currentIndex = statuses.indexOf(order.status);
+                        if (currentIndex === -1 || order.status === "rejected" || order.status === "cancelled") {
+                          return order.status === "rejected" || order.status === "cancelled" ? "25%" : "0%";
+                        }
+                        const total = statuses.length - 1;
+                        return `calc(${(currentIndex / total) * 100}% - ${((currentIndex / total) * 16.66)}%)`;
+                      })(),
+                      height: "4px",
+                      background: order.status === "rejected" || order.status === "cancelled" 
+                        ? "linear-gradient(90deg, #ef4444 0%, #dc2626 100%)"
+                        : "linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)",
+                      borderRadius: "2px",
+                      transform: "translateY(-50%)",
+                      zIndex: 0,
+                      transition: "width 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                      boxShadow: order.status === "rejected" || order.status === "cancelled"
+                        ? "0 2px 8px rgba(239, 68, 68, 0.3)"
+                        : "0 2px 8px rgba(99, 102, 241, 0.3)",
+                    }}
+                  />
+
+                  {/* Animated Pulse for Active Stage */}
+                  {(() => {
+                    const statuses = ["pending", "accepted", "completed"];
+                    const currentIndex = statuses.indexOf(order.status);
+                    if (currentIndex !== -1) {
+                      const leftPosition = 16.66 + (currentIndex * 33.33);
+                      return (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "28px",
+                            left: `calc(${leftPosition}% + 8px)`,
+                            width: "56px",
+                            height: "56px",
+                            borderRadius: "50%",
+                            background: "rgba(99, 102, 241, 0.2)",
+                            transform: "translate(-50%, -50%)",
+                            zIndex: 0,
+                            animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                          }}
+                        />
+                      );
+                    }
+                  })()}
+
+                  {/* Status Nodes */}
+                  {["pending", "accepted", "completed"].map((status, idx) => {
+                    const isActive = order.status === status;
+                    const isPassed = ["pending", "accepted", "completed"].indexOf(order.status) > idx;
+                    const isRejected = order.status === "rejected" || order.status === "cancelled";
+                    
+                    return (
+                      <div
+                        key={status}
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          flex: 1,
+                          position: "relative",
+                          zIndex: 1,
+                        }}
+                      >
+                        {/* Outer Ring for Active */}
+                        {isActive && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              width: "64px",
+                              height: "64px",
+                              borderRadius: "50%",
+                              border: "3px solid rgba(99, 102, 241, 0.3)",
+                              animation: "ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite",
+                            }}
+                          />
+                        )}
+                        
+                        {/* Circle */}
+                        <div
+                          style={{
+                            width: isActive ? "56px" : "48px",
+                            height: isActive ? "56px" : "48px",
+                            borderRadius: "50%",
+                            background: isRejected && idx === 1
+                              ? "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)"
+                              : isActive
+                              ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)"
+                              : isPassed
+                              ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)"
+                              : "#ffffff",
+                            border: isActive || isPassed || (isRejected && idx === 1) ? "none" : "4px solid #e2e8f0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                            boxShadow: isActive
+                              ? "0 8px 20px rgba(99, 102, 241, 0.5), 0 4px 8px rgba(99, 102, 241, 0.3)"
+                              : isPassed || (isRejected && idx === 1)
+                              ? "0 4px 12px rgba(99, 102, 241, 0.25)"
+                              : "0 2px 4px rgba(0, 0, 0, 0.05)",
+                            marginBottom: "16px",
+                            transform: isActive ? "scale(1.05)" : "scale(1)",
+                          }}
+                        >
+                          {isPassed && !isActive ? (
+                            <span style={{ 
+                              color: "#fff", 
+                              fontSize: "22px",
+                              fontWeight: "bold",
+                            }}>✓</span>
+                          ) : isRejected && status === "accepted" ? (
+                            <span style={{ 
+                              color: "#fff", 
+                              fontSize: "22px",
+                              fontWeight: "bold",
+                            }}>✕</span>
+                          ) : (
+                            <span
+                              style={{
+                                color: isActive || isPassed ? "#fff" : "#94a3b8",
+                                fontSize: isActive ? "26px" : "22px",
+                              }}
+                            >
+                              {status === "pending" ? <Icon name="cart" size={isActive ? 26 : 22} /> : status === "accepted" ? <Icon name="chef" size={isActive ? 26 : 22} /> : <Icon name="party" size={isActive ? 26 : 22} />}
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Label */}
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: isActive ? 700 : 600,
+                            color: isActive 
+                              ? "#6366f1" 
+                              : isPassed || (isRejected && status === "accepted")
+                              ? "#475569" 
+                              : "#94a3b8",
+                            textTransform: "capitalize",
+                            textAlign: "center",
+                            maxWidth: "90px",
+                            lineHeight: "1.4",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          {isRejected && status === "accepted" 
+                            ? order.status === "cancelled" ? "Cancelled" : "Rejected"
+                            : status === "pending" 
+                            ? "Order Placed" 
+                            : status === "accepted"
+                            ? "Preparing"
+                            : "Delivered"}
+                        </div>
+                        
+                        {/* Timestamp Hint */}
+                        {isActive && (
+                          <div
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: 500,
+                              color: "#6366f1",
+                              textAlign: "center",
+                              background: "rgba(99, 102, 241, 0.1)",
+                              padding: "4px 10px",
+                              borderRadius: "12px",
+                              marginTop: "4px",
+                            }}
+                          >
+                            Current
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <style>
+                {`
+                  @keyframes pulse {
+                    0%, 100% {
+                      opacity: 1;
+                    }
+                    50% {
+                      opacity: 0.4;
+                    }
+                  }
+                  
+                  @keyframes ping {
+                    0% {
+                      transform: scale(1);
+                      opacity: 1;
+                    }
+                    75%, 100% {
+                      transform: scale(1.3);
+                      opacity: 0;
+                    }
+                  }
+                `}
+              </style>
+
+              {/* Verification Code Section - Only show if order has verification code and is not completed */}
+              {order.verificationCode && !order.isVerified && order.status !== "completed" && (
+                <div 
+                  style={{ 
+                    padding: "24px 20px",
+                    background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                    borderTop: "1px solid #f59e0b",
+                    borderBottom: "1px solid #f59e0b",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "#92400e",
+                      marginBottom: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ fontSize: "20px" }}>🔐</span>
+                    Order Verification Code
+                  </div>
+                  
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      padding: "20px",
+                      borderRadius: "12px",
+                      border: "3px dashed #f59e0b",
+                      textAlign: "center",
+                      boxShadow: "0 4px 12px rgba(245, 158, 11, 0.2)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "36px",
+                        fontWeight: "800",
+                        color: "#f59e0b",
+                        letterSpacing: "8px",
+                        fontFamily: "monospace",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      {order.verificationCode}
+                    </div>
+                    
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "#92400e",
+                        fontWeight: 600,
+                        lineHeight: "1.5",
+                      }}
+                    >
+                      ⚠️ Share this code with the seller for order completion
+                      <br />
+                      <span style={{ fontSize: "12px", fontWeight: 500, color: "#78350f" }}>
+                        Keep this code private and only share at delivery
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Order Items */}
+              <div style={{ padding: "20px" }}>
+                <div
+                  style={{
+                    marginBottom: 16,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "#374151",
+                  }}
+                >
+                  Items ({order.items.length})
+                </div>
+                <div style={{ display: "grid", gap: 12 }}>
+                  {order.items.map((item, itemIdx) => (
+                    <div
+                      key={item._id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "12px",
+                        background: "#f9fafb",
+                        borderRadius: 8,
+                        gap: "12px",
+                      }}
+                    >
+                      {item.sellerProduct_id?.product_id?.image && (
+                        <img
+                          src={
+                            item.sellerProduct_id.product_id.image.startsWith('http')
+                              ? item.sellerProduct_id.product_id.image
+                              : item.sellerProduct_id.product_id.image.startsWith('/')
+                              ? `http://localhost:5001${item.sellerProduct_id.product_id.image}`
+                              : `http://localhost:5001/uploads/${item.sellerProduct_id.product_id.image}`
+                          }
+                          alt={item.sellerProduct_id?.product_id?.name || "Product"}
+                          style={{
+                            width: 60,
+                            height: 60,
+                            objectFit: "cover",
+                            borderRadius: 8,
+                            border: "1px solid #e5e7eb",
+                          }}
+                        />
+                      )}
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 15,
+                            color: "#1f2937",
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.sellerProduct_id?.product_id?.name ||
+                            "Product"}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#6b7280" }}>
+                          Quantity: {item.quantity}
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 16,
+                          color: "#6366f1",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        ₹{item.totalPrice}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Order Footer */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  background: "#f9fafb",
+                  borderTop: "1px solid #e5e7eb",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 600, color: "#374151" }}>
+                  Total Amount
+                </div>
+                <div
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: "#6366f1",
+                  }}
+                >
+                  ₹{order.totalAmount}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Review Modal - Rendered outside the loop */}
+      {reviewModalOpen && selectedOrderForReview && (
+        <ReviewModal
+          order={selectedOrderForReview}
+          onClose={() => {
+            setReviewModalOpen(false);
+            setSelectedOrderForReview(null);
+          }}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
+    </div>
+  );
+}

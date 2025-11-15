@@ -9,6 +9,8 @@ import SellerDashboard from "./pages/SellerDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Cart from "./pages/Cart";
 import MyOrders from "./pages/MyOrders";
+import OrderDetail from "./pages/OrderDetail";
+import SellerReviews from "./pages/SellerReviews";
 
 // 🧱 Admin pages
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -17,6 +19,7 @@ import SellersPage from "./pages/admin/SellersPage";
 import ProductsPage from "./pages/admin/ProductsPage";
 import OrdersPage from "./pages/admin/OrdersPage";
 import ProductRequestsPage from "./pages/admin/ProductRequestsPage";
+import ReviewsPage from "./pages/admin/ReviewsPage";
 
 export default function App() {
   return (
@@ -27,6 +30,8 @@ export default function App() {
       <Route path="/products/:id" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/my-orders" element={<MyOrders />} />
+      <Route path="/order/:orderId" element={<OrderDetail />} />
+      <Route path="/seller-reviews/:sellerId" element={<SellerReviews />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
@@ -56,6 +61,7 @@ export default function App() {
         <Route path="products" element={<ProductsPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="product-requests" element={<ProductRequestsPage />} />
+        <Route path="reviews" element={<ReviewsPage />} />
       </Route>
     </Routes>
   );

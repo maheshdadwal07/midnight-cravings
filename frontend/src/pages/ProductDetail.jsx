@@ -375,6 +375,31 @@ export default function ProductDetail() {
                               {s.seller_id?.roomNumber && ` - Room ${s.seller_id.roomNumber}`}
                             </div>
                           )}
+                          {s.seller_id?._id && (
+                            <Link
+                              to={`/seller-reviews/${s.seller_id._id}`}
+                              style={{
+                                fontSize: 12,
+                                color: "#fbbf24",
+                                marginTop: 6,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                textDecoration: "none",
+                                fontWeight: 600,
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = "#f59e0b";
+                                e.currentTarget.style.textDecoration = "underline";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = "#fbbf24";
+                                e.currentTarget.style.textDecoration = "none";
+                              }}
+                            >
+                              ⭐ View Seller Reviews
+                            </Link>
+                          )}
                         </div>
                         <div
                           style={{

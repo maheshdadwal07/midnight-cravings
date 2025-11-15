@@ -45,11 +45,41 @@ router.get("/my-orders", protectRoute(["user"]), async (req, res) => {
     const orders = await Order.find({ user_id: req.user.id })
       .populate({
         path: "sellerProduct_id",
-        populate: { path: "product_id", select: "name category image" },
+        populate: [
+          { path: "product_id", select: "name category image" },
+          { path: "seller_id", select: "name email shopName hostelBlock roomNumber" }
+        ],
       })
       .sort({ createdAt: -1 });
 
     res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ✅ User: Get a single order by ID
+router.get("/:orderId", protectRoute(["user"]), async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.orderId)
+      .populate({
+        path: "sellerProduct_id",
+        populate: [
+          { path: "product_id", select: "name category image" },
+          { path: "seller_id", select: "name email shopName hostelBlock roomNumber" }
+        ],
+      });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    // Ensure user can only access their own orders
+    if (order.user_id.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
