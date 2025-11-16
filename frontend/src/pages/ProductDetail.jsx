@@ -24,7 +24,12 @@ export default function ProductDetail() {
 
   // Check if product is already in cart
   const isInCart = selectedSeller && items.some(
-    (item) => item.sellerProduct_id === selectedSeller._id
+    (item) => {
+      const itemSellerId = typeof item.sellerProduct_id === 'object' 
+        ? item.sellerProduct_id?._id 
+        : item.sellerProduct_id;
+      return itemSellerId === selectedSeller._id;
+    }
   );
 
   useEffect(() => {
@@ -307,16 +312,18 @@ export default function ProductDetail() {
                     fontSize: 14,
                   }}
                 >
-                  ⚠️ No sellers available for this product
+                  No sellers available for this product
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {sellers.map((s) => {
                     const isBanned = s.seller_id?.banned;
+                    const isDifferentHostel = user?.hostelBlock && s.seller_id?.hostelBlock && s.seller_id.hostelBlock !== user.hostelBlock;
+                    const isDisabled = isBanned;
                     return (
                       <div
                         key={s._id}
-                        onClick={() => !isBanned && setSelectedSeller(s)}
+                        onClick={() => !isDisabled && setSelectedSeller(s)}
                         style={{
                           padding: 16,
                           border: isBanned
@@ -330,20 +337,20 @@ export default function ProductDetail() {
                             : selectedSeller?._id === s._id
                             ? "#f5f3ff"
                             : "#fff",
-                          cursor: isBanned ? "not-allowed" : "pointer",
+                          cursor: isDisabled ? "not-allowed" : "pointer",
                           transition: "all 0.2s",
                           display: "flex",
                           justifyContent: "space-between",
                           alignItems: "center",
-                          opacity: isBanned ? 0.6 : 1,
+                          opacity: isDisabled ? 0.6 : 1,
                         }}
                         onMouseEnter={(e) => {
-                          if (!isBanned && selectedSeller?._id !== s._id) {
+                          if (!isDisabled && selectedSeller?._id !== s._id) {
                             e.currentTarget.style.borderColor = "#c7d2fe";
                           }
                         }}
                         onMouseLeave={(e) => {
-                          if (!isBanned && selectedSeller?._id !== s._id) {
+                          if (!isDisabled && selectedSeller?._id !== s._id) {
                             e.currentTarget.style.borderColor = "#e5e7eb";
                           }
                         }}
@@ -371,7 +378,7 @@ export default function ProductDetail() {
                           </div>
                           {s.seller_id?.hostelBlock && (
                             <div style={{ fontSize: 12, color: "#6366f1", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
-                              🏢 {s.seller_id.hostelBlock}
+                              <span style={{ fontWeight: 600 }}>Hostel:</span> {s.seller_id.hostelBlock}
                               {s.seller_id?.roomNumber && ` - Room ${s.seller_id.roomNumber}`}
                             </div>
                           )}
@@ -397,7 +404,7 @@ export default function ProductDetail() {
                                 e.currentTarget.style.textDecoration = "none";
                               }}
                             >
-                              ⭐ View Seller Reviews
+                              View Seller Reviews
                             </Link>
                           )}
                         </div>
@@ -408,7 +415,7 @@ export default function ProductDetail() {
                             color: isBanned ? "#dc2626" : "#6366f1",
                           }}
                         >
-                          {isBanned ? "🚫" : `₹${s.price}`}
+                          {isBanned ? "N/A" : `₹${s.price}`}
                         </div>
                       </div>
                     );

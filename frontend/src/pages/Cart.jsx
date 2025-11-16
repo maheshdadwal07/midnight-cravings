@@ -50,12 +50,26 @@ export default function Cart() {
     }
     if (items.length === 0) return
     
+    // Determine delivery hostel (custom or user's default)
+    const finalDeliveryHostel = customDelivery ? deliveryHostel : user?.hostelBlock;
+    
     // Validate custom delivery address if enabled
     if (customDelivery) {
       if (!deliveryHostel || !deliveryRoom) {
         toast.error('Please enter delivery hostel and room number')
         return
       }
+    }
+    
+    // Check if all sellers are from the same hostel as delivery address
+    const wrongHostelItems = items.filter(item => {
+      const sellerHostel = item.sellerProduct_id?.seller_id?.hostelBlock;
+      return sellerHostel && sellerHostel !== finalDeliveryHostel;
+    });
+    
+    if (wrongHostelItems.length > 0) {
+      toast.error('All sellers must be from your delivery hostel (' + finalDeliveryHostel + '). Please remove items from other hostels or change your delivery address.');
+      return;
     }
     
     setPlacing(true)
@@ -272,11 +286,35 @@ export default function Cart() {
                         style={{
                           fontSize: 14,
                           color: "#6b7280",
-                          margin: "0 0 12px",
+                          margin: "0 0 4px",
                         }}
                       >
                         ₹{item.price} each
                       </p>
+                      {item.sellerProduct_id?.seller_id && (
+                        <div style={{ 
+                          fontSize: 12, 
+                          color: "#6b7280",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          marginBottom: 8,
+                        }}>
+                          <span style={{ opacity: 0.7, fontWeight: 600, fontSize: 11 }}>Seller:</span>
+                          <span style={{ fontWeight: 500 }}>
+                            {item.sellerProduct_id.seller_id.name}
+                            {item.sellerProduct_id.seller_id.shopName && (
+                              <span style={{ opacity: 0.7 }}> ({item.sellerProduct_id.seller_id.shopName})</span>
+                            )}
+                          </span>
+                          {item.sellerProduct_id.seller_id.hostelBlock && (
+                            <>
+                              <span style={{ opacity: 0.5, margin: "0 4px" }}>•</span>
+                              <span style={{ opacity: 0.8, fontWeight: 600, fontSize: 11 }}>Hostel: {item.sellerProduct_id.seller_id.hostelBlock}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
 
                       {/* Quantity Controls */}
                       <div
@@ -291,7 +329,7 @@ export default function Cart() {
                           <button
                             onClick={() =>
                               handleQuantityChange(
-                                item.sellerProduct_id,
+                                typeof item.sellerProduct_id === 'object' ? item.sellerProduct_id._id : item.sellerProduct_id,
                                 item.quantity - 1
                               )
                             }
@@ -332,7 +370,7 @@ export default function Cart() {
                           <button
                             onClick={() =>
                               handleQuantityChange(
-                                item.sellerProduct_id,
+                                typeof item.sellerProduct_id === 'object' ? item.sellerProduct_id._id : item.sellerProduct_id,
                                 item.quantity + 1
                               )
                             }
@@ -361,7 +399,7 @@ export default function Cart() {
                           </button>
                         </div>
                         <button
-                          onClick={() => removeItem(item.sellerProduct_id)}
+                          onClick={() => removeItem(typeof item.sellerProduct_id === 'object' ? item.sellerProduct_id._id : item.sellerProduct_id)}
                           style={{
                             marginLeft: "auto",
                             padding: "6px 12px",
@@ -482,7 +520,7 @@ export default function Cart() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <h3 style={{ fontSize: 15, fontWeight: 600, color: "#111827", margin: 0 }}>
-                        📍 Delivery Address
+                        Delivery Address
                       </h3>
                       <button
                         onClick={() => {
@@ -503,7 +541,7 @@ export default function Cart() {
                           fontWeight: 600,
                         }}
                       >
-                        {customDelivery ? "✓ Custom" : "Change"}
+                        {customDelivery ? "Custom" : "Change"}
                       </button>
                     </div>
                     

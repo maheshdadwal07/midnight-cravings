@@ -58,7 +58,25 @@ router.get("/my-orders", protectRoute(["user"]), async (req, res) => {
   }
 });
 
-// ✅ User: Get a single order by ID
+// ✅ Seller: Get orders for their listings (MUST be before /:orderId route)
+router.get("/seller-orders", protectRoute(["seller"]), async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate({
+        path: "sellerProduct_id",
+        match: { seller_id: req.user.id },
+        populate: { path: "product_id", select: "name category image" },
+      })
+      .populate("user_id", "name email")
+      .sort({ createdAt: -1 });
+
+    res.json(orders.filter((o) => o.sellerProduct_id));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ✅ User: Get a single order by ID (MUST be after specific routes like /seller-orders)
 router.get("/:orderId", protectRoute(["user"]), async (req, res) => {
   try {
     const order = await Order.findById(req.params.orderId)
@@ -80,25 +98,6 @@ router.get("/:orderId", protectRoute(["user"]), async (req, res) => {
     }
 
     res.json(order);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// ✅ Seller: Get orders for their listings
-router.get("/seller-orders", protectRoute(["seller"]), async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate({
-        path: "sellerProduct_id",
-        match: { seller_id: req.user.id }, // only seller's own listings
-        populate: { path: "product_id", select: "name category image" },
-      })
-      .populate("user_id", "name email")
-      .sort({ createdAt: -1 });
-
-    // Filter out null (other sellers' orders)
-    res.json(orders.filter((o) => o.sellerProduct_id));
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -236,6 +235,26 @@ router.patch("/:id", protectRoute(["seller"]), async (req, res) => {
   } catch (error) {
     console.error('Order update error:', error);
     res.status(500).json({ message: error.message || "Failed to update order" });
+  }
+});
+
+// ✅ Public: Get recent orders for homepage (no auth required)
+router.get("/public/recent", async (req, res) => {
+  try {
+    const orders = await Order.find({ paymentStatus: "paid" })
+      .populate({
+        path: "sellerProduct_id",
+        populate: [
+          { path: "product_id", select: "name category" },
+          { path: "seller_id", select: "shopName hostelBlock" }
+        ],
+      })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

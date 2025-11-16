@@ -453,7 +453,7 @@ export default function OrderDetail() {
                   if (!allReviewed) e.currentTarget.style.background = "#6366f1";
                 }}
               >
-                {allReviewed ? '✓ Reviewed' : unreviewedSellerCount > 1 ? `Rate ${unreviewedSellerCount} Sellers` : 'Rate Seller'}
+                {allReviewed ? 'Reviewed' : unreviewedSellerCount > 1 ? `Rate ${unreviewedSellerCount} Sellers` : 'Rate Seller'}
               </button>
             )}
           </div>
@@ -499,7 +499,7 @@ export default function OrderDetail() {
                   </div>
                   {item.sellerProduct_id?.seller_id && (
                     <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: "#f9fafb", borderRadius: 6, width: "fit-content" }}>
-                      <span style={{ fontSize: 14 }}>👤</span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280" }}>Seller:</span>
                       <div style={{ fontSize: 13, color: "#374151" }}>
                         <span style={{ fontWeight: 600 }}>{item.sellerProduct_id.seller_id.name}</span>
                         {item.sellerProduct_id.seller_id.shopName && (
@@ -525,7 +525,7 @@ export default function OrderDetail() {
                       alignItems: "center",
                       gap: 4,
                     }}>
-                      ✓ Reviewed
+                      Reviewed
                     </div>
                   )}
                 </div>

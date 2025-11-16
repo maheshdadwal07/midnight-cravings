@@ -27,6 +27,9 @@ export function CartProvider({ children }) {
         return;
       }
 
+      // Clear items immediately when fetching for logged-in user
+      setItems([]);
+
       try {
         const token = localStorage.getItem("mc_token");
         if (!token) return;
@@ -100,7 +103,7 @@ const addItem = async (item) => {
     // If logged in, save to backend
     setToken(token);
     const res = await api.post("/api/cart/add", item);
-    setItems(res.data.items);
+    setItems(res.data.items || []);
   } catch (err) {
     console.error("Failed to add item:", err.response?.data || err.message);
     throw err;
@@ -136,7 +139,7 @@ const updateQuantity = async (sellerProduct_id, quantity) => {
   
   setToken(token);
   const res = await api.put("/api/cart/update", { sellerProduct_id, quantity });
-  setItems(res.data.items);
+  setItems(res.data.items || []);
 };
 
 const removeItem = async (sellerProduct_id) => {
@@ -166,7 +169,7 @@ const removeItem = async (sellerProduct_id) => {
   
   setToken(token);
   const res = await api.delete(`/api/cart/remove/${sellerProduct_id}`);
-  setItems(res.data.items);
+  setItems(res.data.items || []);
 };
 
 const clear = async () => {

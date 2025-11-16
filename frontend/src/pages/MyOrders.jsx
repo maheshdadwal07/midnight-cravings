@@ -15,7 +15,6 @@ export default function MyOrders() {
   const [selectedSeller, setSelectedSeller] = useState(null);
   const [availableSellers, setAvailableSellers] = useState([]);
   const [reviewedOrders, setReviewedOrders] = useState(new Set());
-  const [expandedOrders, setExpandedOrders] = useState(new Set());
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -140,17 +139,7 @@ export default function MyOrders() {
     }
   };
 
-  const toggleOrderExpand = (orderId) => {
-    setExpandedOrders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId);
-      } else {
-        newSet.add(orderId);
-      }
-      return newSet;
-    });
-  };
+
 
   const filteredOrders = orders.filter(order => {
     const matchesStatus = filterStatus === "all" || order.status === filterStatus;
@@ -309,33 +298,6 @@ export default function MyOrders() {
               </button>
             ))}
           </div>
-          
-          {filteredOrders.length > 0 && (
-            <button
-              onClick={() => {
-                if (expandedOrders.size === filteredOrders.length) {
-                  setExpandedOrders(new Set());
-                } else {
-                  setExpandedOrders(new Set(filteredOrders.map(o => o.orderId)));
-                }
-              }}
-              style={{
-                padding: "8px 14px",
-                background: "#fff",
-                color: "#6b7280",
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "#f9fafb"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
-            >
-              {expandedOrders.size === filteredOrders.length ? "Collapse All" : "Expand All"}
-            </button>
-          )}
         </div>
       )}
 
@@ -365,7 +327,6 @@ export default function MyOrders() {
         
         <div style={{ display: "grid", gap: 14 }}>
           {filteredOrders.map((order, idx) => {
-            const isExpanded = expandedOrders.has(order.orderId);
             const orderNumber = orders.length - orders.indexOf(order);
             return (
             <div
@@ -378,21 +339,25 @@ export default function MyOrders() {
               }}
             >
               <div
-                onClick={() => toggleOrderExpand(order.orderId)}
+                onClick={() => navigate(`/order/${order.orderId}`)}
                 style={{
                   padding: "16px 18px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
                   cursor: "pointer",
-                  background: isExpanded ? "#fafbfc" : "#fff",
-                  transition: "background 0.2s ease",
+                  background: "#fff",
+                  transition: "background 0.2s ease, transform 0.2s ease",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isExpanded) e.currentTarget.style.background = "#fafbfc";
+                  e.currentTarget.style.background = "#fafbfc";
+                  e.currentTarget.parentElement.style.transform = "translateY(-2px)";
+                  e.currentTarget.parentElement.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
                 }}
                 onMouseLeave={(e) => {
-                  if (!isExpanded) e.currentTarget.style.background = "#fff";
+                  e.currentTarget.style.background = "#fff";
+                  e.currentTarget.parentElement.style.transform = "translateY(0)";
+                  e.currentTarget.parentElement.style.boxShadow = "none";
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -425,363 +390,11 @@ export default function MyOrders() {
                   <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>
                     {formatDate(order.createdAt)} • {order.items.length} item{order.items.length > 1 ? 's' : ''}
                   </div>
-                  {!isExpanded && (
-                    <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
-                      {order.items.slice(0, 3).map((item, i) => (
-                        item.sellerProduct_id?.product_id?.image && (
-                          <img
-                            key={i}
-                            src={
-                              item.sellerProduct_id.product_id.image.startsWith('http')
-                                ? item.sellerProduct_id.product_id.image
-                                : item.sellerProduct_id.product_id.image.startsWith('/')
-                                ? `http://localhost:5001${item.sellerProduct_id.product_id.image}`
-                                : `http://localhost:5001/uploads/${item.sellerProduct_id.product_id.image}`
-                            }
-                            alt=""
-                            style={{
-                              width: 32,
-                              height: 32,
-                              objectFit: "cover",
-                              borderRadius: 6,
-                              border: "1px solid #e5e7eb",
-                            }}
-                          />
-                        )
-                      ))}
-                      {order.items.length > 3 && (
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: 6,
-                            background: "#f3f4f6",
-                            border: "1px solid #e5e7eb",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: "#6b7280",
-                          }}
-                        >
-                          +{order.items.length - 3}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/order/${order.orderId}`);
-                    }}
-                    style={{
-                      padding: "8px 16px",
-                      background: "#6366f1",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "all 0.2s ease",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#4f46e5")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "#6366f1")}
-                  >
-                    View Details
-                  </button>
-                  <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>Total</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>
-                      ₹{order.totalAmount}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      color: "#9ca3af",
-                      transition: "transform 0.2s ease",
-                      transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                    }}
-                  >
-                    ▼
-                  </div>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  maxHeight: isExpanded ? "2000px" : "0",
-                  overflow: "hidden",
-                  transition: "max-height 0.3s ease-in-out",
-                }}
-              >
-              <div 
-                style={{ 
-                  padding: "20px 18px", 
-                  background: "#fafbfc",
-                  borderBottom: "1px solid #e5e7eb",
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 16 }}>
-                  Order Status
-                </div>
-                
-                <div style={{ position: "relative" }}>
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "20px",
-                      left: "calc(16.66% + 8px)",
-                      right: "calc(16.66% + 8px)",
-                      height: "3px",
-                      background: "#e5e7eb",
-                      borderRadius: "2px",
-                      zIndex: 0,
-                    }}
-                  />
-                  
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "20px",
-                      left: "calc(16.66% + 8px)",
-                      width: (() => {
-                        const statuses = ["pending", "accepted", "completed"];
-                        if (order.status === "cancelled" || order.status === "rejected") {
-                          return "33.33%";
-                        }
-                        const currentIndex = statuses.indexOf(order.status);
-                        if (currentIndex === -1) return "0%";
-                        const total = statuses.length - 1;
-                        return `calc(${(currentIndex / total) * 100}% - ${((currentIndex / total) * 16.66)}%)`;
-                      })(),
-                      height: "3px",
-                      background: order.status === "rejected" || order.status === "cancelled" 
-                        ? "#dc2626"
-                        : order.status === "completed"
-                        ? "#059669"
-                        : order.status === "accepted"
-                        ? "#2563eb"
-                        : "#d97706",
-                      borderRadius: "2px",
-                      zIndex: 0,
-                    }}
-                  />
-
-                  <div style={{ display: "flex", justifyContent: "space-between", position: "relative" }}>
-                  {["pending", "accepted", "completed"].map((status, idx) => {
-                    const statuses = ["pending", "accepted", "completed"];
-                    const currentStatusIndex = statuses.indexOf(order.status);
-                    const isActive = order.status === status;
-                    const isPassed = currentStatusIndex > idx;
-                    const isRejected = (order.status === "cancelled" || order.status === "rejected");
-
-                    return (
-                      <div
-                        key={status}
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          flex: 1,
-                          zIndex: 1,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "40px",
-                            height: "40px",
-                            borderRadius: "50%",
-                            background: isRejected && idx === 1
-                              ? "#dc2626"
-                              : status === "completed" && (isActive || isPassed)
-                              ? "#059669"
-                              : status === "accepted" && (isActive || isPassed)
-                              ? "#2563eb"
-                              : status === "pending" && (isActive || isPassed)
-                              ? "#d97706"
-                              : "#fff",
-                            border: isActive || isPassed || (isRejected && idx === 1) ? "none" : "3px solid #d1d5db",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          {isPassed && !isActive ? (
-                            <span style={{ color: "#fff", fontSize: "18px", fontWeight: "bold" }}>✓</span>
-                          ) : isRejected && status === "accepted" ? (
-                            <span style={{ color: "#fff", fontSize: "18px", fontWeight: "bold" }}>✕</span>
-                          ) : (
-                            <span style={{ color: isActive || isPassed ? "#fff" : "#9ca3af", fontSize: "18px", fontWeight: "bold" }}>
-                              {isPassed || isActive ? "✓" : ""}
-                            </span>
-                          )}
-                        </div>
-
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            fontWeight: isActive ? 600 : 500,
-                            color: isActive
-                              ? status === "completed"
-                                ? "#059669"
-                                : status === "accepted"
-                                ? "#2563eb"
-                                : "#d97706"
-                              : isPassed || (isRejected && status === "accepted")
-                              ? "#374151" 
-                              : "#9ca3af",
-                            textAlign: "center",
-                            maxWidth: "80px",
-                          }}
-                        >
-                          {isRejected && status === "accepted" 
-                            ? order.status === "cancelled" ? "Cancelled" : "Rejected"
-                            : status === "pending" 
-                            ? "Placed" 
-                            : status === "accepted"
-                            ? "Preparing"
-                            : "Delivered"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  </div>
-                </div>
-              </div>
-
-              {order.verificationCode && !order.isVerified && order.status !== "completed" && (
-                <div 
-                  style={{ 
-                    padding: "18px",
-                    background: "#fffbeb",
-                    borderBottom: "1px solid #fde68a",
-                  }}
-                >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "#92400e", marginBottom: 10 }}>
-                    🔐 Verification Code
-                  </div>
-                  
-                  <div
-                    style={{
-                      background: "#fff",
-                      padding: "12px",
-                      borderRadius: "8px",
-                      border: "2px dashed #fbbf24",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: "28px",
-                        fontWeight: "700",
-                        color: "#f59e0b",
-                        letterSpacing: "6px",
-                        fontFamily: "monospace",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      {order.verificationCode}
-                    </div>
-                    
-                    <div style={{ fontSize: "12px", color: "#78350f", fontWeight: 500 }}>
-                      Share this code with seller at delivery
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div style={{ padding: "18px" }}>
-                <div
-                  style={{
-                    marginBottom: 14,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "#6b7280",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span>Items ({order.items.length})</span>
-                  {order.status === "completed" && (() => {
-                    // Get unique unreviewed sellers
-                    const sellerMap = new Map();
-                    order.items.forEach(item => {
-                      if (item.sellerProduct_id?.seller_id) {
-                        const sellerId = item.sellerProduct_id.seller_id._id;
-                        const pairKey = `${item._id}-${sellerId}`;
-                        if (!reviewedOrders.has(pairKey)) {
-                          sellerMap.set(sellerId, item);
-                        }
-                      }
-                    });
-                    
-                    const unreviewedSellerCount = sellerMap.size;
-                    const allReviewed = unreviewedSellerCount === 0;
-                    
-                    return (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (allReviewed) return;
-                          handleOpenReview(order);
-                        }}
-                        style={{
-                          padding: "6px 14px",
-                          background: allReviewed ? "#9ca3af" : "#6366f1",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: allReviewed ? "not-allowed" : "pointer",
-                          boxShadow: allReviewed ? "none" : "0 2px 4px rgba(99, 102, 241, 0.2)",
-                          transition: "all 0.2s ease",
-                          opacity: allReviewed ? 0.6 : 1,
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!allReviewed) {
-                            e.currentTarget.style.background = "#4f46e5";
-                            e.currentTarget.style.boxShadow = "0 4px 8px rgba(99, 102, 241, 0.3)";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!allReviewed) {
-                            e.currentTarget.style.background = "#6366f1";
-                            e.currentTarget.style.boxShadow = "0 2px 4px rgba(99, 102, 241, 0.2)";
-                          }
-                        }}
-                        disabled={allReviewed}
-                      >
-                        {allReviewed ? '✓ Reviewed' : unreviewedSellerCount > 1 ? `Rate ${unreviewedSellerCount} Sellers` : 'Rate Seller'}
-                      </button>
-                    );
-                  })()}
-                </div>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {order.items.map((item, itemIdx) => (
-                    <div
-                      key={item._id}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "10px",
-                        background: "#fafbfc",
-                        borderRadius: 8,
-                        gap: "12px",
-                        border: "1px solid #f3f4f6",
-                      }}
-                    >
-                      {item.sellerProduct_id?.product_id?.image && (
+                  <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+                    {order.items.slice(0, 3).map((item, i) => (
+                      item.sellerProduct_id?.product_id?.image && (
                         <img
+                          key={i}
                           src={
                             item.sellerProduct_id.product_id.image.startsWith('http')
                               ? item.sellerProduct_id.product_id.image
@@ -789,71 +402,47 @@ export default function MyOrders() {
                               ? `http://localhost:5001${item.sellerProduct_id.product_id.image}`
                               : `http://localhost:5001/uploads/${item.sellerProduct_id.product_id.image}`
                           }
-                          alt={item.sellerProduct_id?.product_id?.name || "Product"}
+                          alt=""
                           style={{
-                            width: 56,
-                            height: 56,
+                            width: 32,
+                            height: 32,
                             objectFit: "cover",
                             borderRadius: 6,
                             border: "1px solid #e5e7eb",
                           }}
                         />
-                      )}
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", marginBottom: 4 }}>
-                          {item.sellerProduct_id?.product_id?.name || "Product"}
-                        </div>
-                        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 2 }}>
-                          Qty: {item.quantity}
-                        </div>
-                        {item.sellerProduct_id?.seller_id && (
-                          <div style={{ 
-                            fontSize: 11, 
-                            color: "#6b7280",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            marginTop: 4,
-                          }}>
-                            <span style={{ opacity: 0.7 }}>👤</span>
-                            <span style={{ fontWeight: 500 }}>
-                              {item.sellerProduct_id.seller_id.name}
-                              {item.sellerProduct_id.seller_id.shopName && (
-                                <span style={{ opacity: 0.7 }}> ({item.sellerProduct_id.seller_id.shopName})</span>
-                              )}
-                            </span>
-                          </div>
-                        )}
+                      )
+                    ))}
+                    {order.items.length > 3 && (
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 6,
+                          background: "#f3f4f6",
+                          border: "1px solid #e5e7eb",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: "#6b7280",
+                        }}
+                      >
+                        +{order.items.length - 3}
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: "#6366f1", whiteSpace: "nowrap" }}>
-                          ₹{item.totalPrice}
-                        </div>
-                        {order.status === "completed" && item.sellerProduct_id?.seller_id?._id && reviewedOrders.has(`${item._id}-${item.sellerProduct_id.seller_id._id}`) && (
-                          <div style={{ 
-                            padding: "4px 8px",
-                            background: "#d1fae5",
-                            color: "#059669",
-                            borderRadius: 5,
-                            fontSize: 11, 
-                            fontWeight: 600,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}>
-                            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                            </svg>
-                            Reviewed
-                          </div>
-                        )}
-                      </div>
+                    )}
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>Total</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>
+                      ₹{order.totalAmount}
                     </div>
-                  ))}
+                  </div>
                 </div>
               </div>
-              </div>
-
             </div>
           );
           })}

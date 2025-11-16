@@ -7,7 +7,13 @@ const router = express.Router();
 // Get user cart
 router.get("/", protectRoute(["user", "seller", "admin"]), async (req, res) => {
   try {
-    const cart = await Cart.findOne({ userId: req.user.id });
+    const cart = await Cart.findOne({ userId: req.user.id }).populate({
+      path: 'items.sellerProduct_id',
+      populate: {
+        path: 'seller_id',
+        select: 'name shopName hostelBlock roomNumber'
+      }
+    });
     res.json(cart || { items: [] });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -50,6 +56,13 @@ router.post(
         0
       );
       await cart.save();
+      await cart.populate({
+        path: 'items.sellerProduct_id',
+        populate: {
+          path: 'seller_id',
+          select: 'name shopName hostelBlock roomNumber'
+        }
+      });
       res.json(cart);
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -78,6 +91,13 @@ router.put(
         0
       );
       await cart.save();
+      await cart.populate({
+        path: 'items.sellerProduct_id',
+        populate: {
+          path: 'seller_id',
+          select: 'name shopName hostelBlock roomNumber'
+        }
+      });
       res.json(cart);
     } catch (err) {
       res.status(500).json({ message: err.message });
@@ -103,6 +123,13 @@ router.delete(
         0
       );
       await cart.save();
+      await cart.populate({
+        path: 'items.sellerProduct_id',
+        populate: {
+          path: 'seller_id',
+          select: 'name shopName hostel'
+        }
+      });
       res.json(cart);
     } catch (err) {
       res.status(500).json({ message: err.message });

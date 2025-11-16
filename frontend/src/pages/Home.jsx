@@ -12,6 +12,11 @@ export default function Home() {
   const { user } = useContext(AuthContext);
   const [productsByCategory, setProductsByCategory] = useState({});
   const [loading, setLoading] = useState(true);
+  const [lastOrder, setLastOrder] = useState(null);
+  const [loadingOrder, setLoadingOrder] = useState(true);
+  const [showScrollIndicator, setShowScrollIndicator] = useState(true);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [loadingTrending, setLoadingTrending] = useState(true);
 
 
   // Define categories to display
@@ -37,6 +42,79 @@ export default function Home() {
       navigate("/admin");
     }
   }, [user, navigate]);
+
+  // Fetch last order for hero section
+  useEffect(() => {
+    const fetchLastOrder = async () => {
+      try {
+        const res = await api.get("/api/orders/public/recent");
+        // Get only the last order
+        if (res.data && res.data.length > 0) {
+          const order = res.data[0];
+          setLastOrder({
+            id: order._id,
+            quantity: order.quantity || 1,
+            total: order.totalPrice || 0,
+            status: order.status || 'pending',
+            time: new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+            product: order.sellerProduct_id?.product_id?.name || 'Product',
+            createdAt: order.createdAt
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch last order", error);
+        setLastOrder(null);
+      } finally {
+        setLoadingOrder(false);
+      }
+    };
+    fetchLastOrder();
+  }, []);
+
+  // Handle scroll to hide indicator
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 100) {
+        setShowScrollIndicator(false);
+      } else {
+        setShowScrollIndicator(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Fetch trending products
+  useEffect(() => {
+    const fetchTrendingProducts = async () => {
+      try {
+        const res = await api.get("/api/products");
+        // Get products with sellers and sort by seller count (popularity)
+        const productsWithSellers = res.data.filter((p) => {
+          const sellerCount = p.sellerCount || (p.sellers || []).length || 0;
+          return sellerCount > 0;
+        });
+        
+        // Sort by seller count and get top 8
+        const trending = productsWithSellers
+          .sort((a, b) => {
+            const aCount = a.sellerCount || (a.sellers || []).length || 0;
+            const bCount = b.sellerCount || (b.sellers || []).length || 0;
+            return bCount - aCount;
+          })
+          .slice(0, 8);
+        
+        setTrendingProducts(trending);
+      } catch (err) {
+        console.error("Failed to fetch trending products", err);
+      } finally {
+        setLoadingTrending(false);
+      }
+    };
+
+    fetchTrendingProducts();
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -126,8 +204,123 @@ export default function Home() {
           </div>
         </div>
         <div className="hero-right">
-          {/* Interactive Phone Mockup */}
-          <div className="phone-mockup">
+          {/* Mobile Phone Mockup with Live Orders */}
+          <div className="phone-mockup-scene">
+            <div className="phone-container">
+              {/* Phone Frame */}
+              <div className="phone-frame">
+                {/* Notch */}
+                <div className="phone-notch"></div>
+                
+                {/* Screen */}
+                <div className="phone-screen">
+                  {/* App Header */}
+                  <div className="app-header">
+                    <div className="app-logo">
+                      <Icon name="moon" size={24} />
+                      <span>Midnight Cravings</span>
+                    </div>
+                    <div className="live-badge">
+                      <span className="pulse-dot"></span>
+                      LIVE
+                    </div>
+                  </div>
+                  
+                  {/* Order Tracker */}
+                  <div className="order-tracker-container">
+                    <h3 className="tracker-title">Live Order Tracking</h3>
+                    {loadingOrder ? (
+                      <div className="loading-tracker">Loading...</div>
+                    ) : lastOrder ? (
+                      <>
+                        {/* Order Info Card */}
+                        <div className="tracker-order-info">
+                          <div className="info-row">
+                            <span className="info-label">Order ID</span>
+                            <span className="info-value">#{lastOrder.id.slice(-6)}</span>
+                          </div>
+                          <div className="info-row">
+                            <span className="info-label">Amount</span>
+                            <span className="info-value">₹{lastOrder.total}</span>
+                          </div>
+                          <div className="info-row">
+                            <span className="info-label">Time</span>
+                            <span className="info-value">{lastOrder.time}</span>
+                          </div>
+                        </div>
+
+                        {/* Progress Tracker */}
+                        <div className="progress-tracker">
+                          {/* Stage 1: Pending */}
+                          <div className={`tracker-stage ${lastOrder.status === 'pending' ? 'active' : lastOrder.status === 'accepted' || lastOrder.status === 'completed' ? 'completed' : ''}`}>
+                            <div className="stage-circle">
+                              {lastOrder.status === 'accepted' || lastOrder.status === 'completed' ? (
+                                <Icon name="check" size={20} />
+                              ) : lastOrder.status === 'pending' ? (
+                                <span className="pulse-ring"></span>
+                              ) : (
+                                <Icon name="clock" size={20} />
+                              )}
+                            </div>
+                            <span className="stage-label">Pending</span>
+                          </div>
+
+                          <div className={`tracker-line ${lastOrder.status === 'accepted' || lastOrder.status === 'completed' ? 'completed' : ''}`}></div>
+
+                          {/* Stage 2: Accepted */}
+                          <div className={`tracker-stage ${lastOrder.status === 'accepted' ? 'active' : lastOrder.status === 'completed' ? 'completed' : ''}`}>
+                            <div className="stage-circle">
+                              {lastOrder.status === 'completed' ? (
+                                <Icon name="check" size={20} />
+                              ) : lastOrder.status === 'accepted' ? (
+                                <span className="pulse-ring"></span>
+                              ) : (
+                                <Icon name="delivery" size={20} />
+                              )}
+                            </div>
+                            <span className="stage-label">Accepted</span>
+                          </div>
+
+                          <div className={`tracker-line ${lastOrder.status === 'completed' ? 'completed' : ''}`}></div>
+
+                          {/* Stage 3: Completed */}
+                          <div className={`tracker-stage ${lastOrder.status === 'completed' ? 'active completed' : ''}`}>
+                            <div className="stage-circle">
+                              {lastOrder.status === 'completed' ? (
+                                <Icon name="check" size={20} />
+                              ) : (
+                                <Icon name="party" size={20} />
+                              )}
+                            </div>
+                            <span className="stage-label">Completed</span>
+                          </div>
+                        </div>
+
+                        {/* Current Status Badge */}
+                        <div className="current-status">
+                          <div className={`status-badge badge-${lastOrder.status}`}>
+                            {lastOrder.status === 'pending' && 'Waiting for seller to accept'}
+                            {lastOrder.status === 'accepted' && 'Order is being prepared'}
+                            {lastOrder.status === 'completed' && 'Order delivered successfully!'}
+                            {lastOrder.status === 'rejected' && 'Order was rejected'}
+                            {lastOrder.status === 'cancelled' && 'Order was cancelled'}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="no-orders">
+                        <Icon name="cart" size={48} />
+                        <p>No orders yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Old phone mockup - hidden */}
+          <div className="phone-mockup" style={{display: 'none'}}>
             <div className="phone-notch"></div>
             <div className="phone-screen">
             <div className="notification notif-1">
@@ -138,65 +331,9 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="notification notif-2">
-                <span className="notif-icon"><Icon name="package" size={35} /></span>
-                <div className="notif-content">
-                  <span className="notif-title">Out for Delivery</span>
-                  <span className="notif-text">Arriving in 12 min</span>
-                </div>
-              </div>
-            <div className="order-header-old" style={{display:'none'}}>
-              <div className="delivery-time">
-                <span className="clock-icon">⏱️</span>
-                <span className="time-text">Delivering in 12 mins</span>
-              </div>
-              <span className="live-badge">🔴 LIVE</span>
-            </div>
-            
-            <div className="order-items">
-              <div className="order-item item-1">
-                <div className="item-image"><Icon name="snack" size={40} /></div>
-                <div className="item-details">
-                  <span className="item-name">Margherita Pizza</span>
-                  <span className="item-quantity">× 2</span>
-                </div>
-                <span className="item-price">₹320</span>
-              </div>
-              
-              <div className="order-item item-2">
-                <div className="item-image"><Icon name="beverage" size={40} /></div>
-                <div className="item-details">
-                  <span className="item-name">Cold Drink</span>
-                  <span className="item-quantity">× 1</span>
-                </div>
-                <span className="item-price">₹40</span>
-              </div>
-              
-              <div className="order-item item-3">
-                <div className="item-image"><Icon name="snack" size={40} /></div>
-                <div className="item-details">
-                  <span className="item-name">French Fries</span>
-                  <span className="item-quantity">× 1</span>
-                </div>
-                <span className="item-price">₹80</span>
-              </div>
-            </div>
-            
-              <div className="mini-map">
-                <div className="map-bg"></div>
-                <div className="delivery-route">
-                  <div className="route-line"></div>
-                  <div className="delivery-scooter">🛵</div>
-                </div>
-                <div className="location-markers">
-                  <div className="marker start"><Icon name="store" size={38} /></div>
-                  <div className="marker end"><Icon name="target" size={38} /></div>
-                </div>
-              </div>
-              
               <div className="progress-tracker">
                 <div className="tracker-step done">
-                  <div className="step-circle">✓</div>
+                  <div className="step-circle">Done</div>
                   <span>Placed</span>
                 </div>
                 <div className="tracker-line done"></div>
@@ -229,12 +366,56 @@ export default function Home() {
       </div>
       
       {/* Scroll Indicator */}
-      <div className="scroll-indicator">
+      <div className={`scroll-indicator ${!showScrollIndicator ? 'hidden' : ''}`}>
         <div className="scroll-mouse">
           <div className="scroll-wheel"></div>
         </div>
         <span className="scroll-text">Scroll to explore</span>
       </div>
+
+      {/* TRENDING PRODUCTS SECTION */}
+      <section className="trending-section">
+        <div className="trending-header">
+          <div className="trending-title-wrap">
+            <span className="trending-icon"><Icon name="fire" size={40} /></span>
+            <div>
+              <h2 className="trending-title">Trending Now</h2>
+              <p className="trending-subtitle">Most loved items this week</p>
+            </div>
+          </div>
+          <button
+            className="view-all-trending"
+            onClick={() => navigate('/products')}
+          >
+            View All <span className="arrow">→</span>
+          </button>
+        </div>
+        
+        {loadingTrending ? (
+          <div className="product-grid">
+            {Array(8).fill(0).map((_, idx) => (
+              <div key={idx} className="product-placeholder"></div>
+            ))}
+          </div>
+        ) : (
+          <div className="trending-grid">
+            {trendingProducts.map((product, index) => (
+              <div key={product._id || product.id} className="trending-product-wrapper">
+                {index < 3 && (
+                  <div className="trending-badge">
+                    <Icon name="fire" size={16} />
+                    <span>#{index + 1}</span>
+                  </div>
+                )}
+                <ProductCard
+                  product={product}
+                  onClick={() => navigate(`/products/${product._id || product.id}`)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* PRODUCTS BY CATEGORY */}
       {loading ? (
@@ -378,11 +559,12 @@ export default function Home() {
         body {
           margin: 0;
           font-family: "Poppins", sans-serif;
-          background: #f9fafb;
+          background: #fafbfc;
         }
 
         .home {
           width: 100%;
+          background: #fafbfc;
         }
 
         /* HERO */
@@ -390,9 +572,9 @@ export default function Home() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 4rem 2rem;
-          background: linear-gradient(135deg, #fafbff 0%, #f5f7ff 100%);
-          min-height: 85vh;
+          padding: 3rem 2rem;
+          background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+          min-height: 80vh;
           position: relative;
           overflow: hidden;
           flex-wrap: wrap;
@@ -414,35 +596,40 @@ export default function Home() {
           min-width: 300px;
         }
         .hero-badge {
-          display: inline-block;
-          background: rgba(99, 102, 241, 0.1);
-          padding: 0.5rem 1rem;
-          border-radius: 30px;
-          font-size: 0.9rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(99, 102, 241, 0.08);
+          padding: 0.6rem 1.2rem;
+          border-radius: 50px;
+          font-size: 0.85rem;
           font-weight: 600;
           color: #6366f1;
-          border: 1px solid rgba(99, 102, 241, 0.2);
+          border: 1px solid rgba(99, 102, 241, 0.15);
           margin-bottom: 1.5rem;
+          backdrop-filter: blur(10px);
         }
         .hero-title {
-          font-size: clamp(2.8rem, 6vw, 4.2rem);
+          font-size: clamp(2.5rem, 5.5vw, 3.8rem);
           font-weight: 800;
-          line-height: 1.15;
-          margin-bottom: 1.2rem;
-          color: #1e293b;
-          letter-spacing: -0.5px;
+          line-height: 1.2;
+          margin-bottom: 1rem;
+          color: #0f172a;
+          letter-spacing: -1px;
         }
         .hero-title .highlight {
-          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
+          display: inline-block;
         }
         .hero-subtitle {
-          font-size: 1.1rem;
-          color: #64748b;
+          font-size: 1.05rem;
+          color: #475569;
           margin-bottom: 2rem;
-          line-height: 1.6;
-          max-width: 500px;
+          line-height: 1.7;
+          max-width: 520px;
+          font-weight: 400;
         }
         .hero-left h2 {
           font-size: clamp(3.2rem, 7vw, 5rem);
@@ -472,34 +659,38 @@ export default function Home() {
           margin-top: 0.5rem;
         }
         .btn-primary {
-          padding: 0.9rem 2rem;
-          background: #6366f1;
+          padding: 1rem 2.2rem;
+          background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
           color: #fff;
           border: none;
-          border-radius: 10px;
+          border-radius: 12px;
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
-          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-          transition: all 0.2s ease;
+          box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
         }
         .btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+          box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
         }
         .btn-outline {
-          padding: 0.9rem 2rem;
+          padding: 1rem 2.2rem;
           border: 2px solid #e2e8f0;
-          color: #475569;
-          border-radius: 10px;
+          color: #64748b;
+          border-radius: 12px;
           font-size: 1rem;
           font-weight: 600;
           background: #fff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .btn-outline:hover {
           border-color: #6366f1;
+          background: rgba(99, 102, 241, 0.05);
           color: #6366f1;
           transform: translateY(-2px);
         }
@@ -507,44 +698,37 @@ export default function Home() {
         .hero-stats {
           display: flex;
           align-items: center;
-          gap: 2rem;
+          gap: 2.5rem;
           margin-top: 3rem;
-          padding: 1.5rem 2rem;
-          background: rgba(255, 255, 255, 0.6);
-          backdrop-filter: blur(10px);
-          border-radius: 20px;
-          border: 1px solid rgba(255, 255, 255, 0.8);
-          box-shadow: 
-            0 10px 30px rgba(0, 0, 0, 0.05),
-            inset 0 1px 0 rgba(255, 255, 255, 0.9);
+          padding: 1.5rem 2.5rem;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(20px);
+          border-radius: 16px;
+          border: 1px solid rgba(226, 232, 240, 0.8);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
           width: fit-content;
-          animation: slideUp 0.8s ease backwards;
-          animation-delay: 0.4s;
         }
         .stat-item {
           display: flex;
           flex-direction: column;
           gap: 0.3rem;
           position: relative;
-          transition: transform 0.3s ease;
-        }
-        .stat-item:hover {
-          transform: translateY(-3px);
         }
         .stat-number {
-          font-size: 1.8rem;
-          font-weight: 700;
-          color: #1e293b;
+          font-size: 1.75rem;
+          font-weight: 800;
+          color: #0f172a;
+          letter-spacing: -0.5px;
         }
         .stat-label {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: #64748b;
           font-weight: 500;
         }
         .stat-divider {
           width: 1px;
-          height: 40px;
-          background: #e2e8f0;
+          height: 45px;
+          background: linear-gradient(to bottom, transparent, #e2e8f0, transparent);
         }
         .hero-right {
           flex: 1;
@@ -556,7 +740,7 @@ export default function Home() {
           min-height: 500px;
         }
 
-        /* Phone Mockup - 3D Enhanced */
+        /* Phone Mockup - Clean Design */
         .phone-mockup {
           width: 340px;
           height: 680px;
@@ -564,26 +748,12 @@ export default function Home() {
           border-radius: 45px;
           padding: 14px;
           box-shadow: 
-            0 30px 100px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(255, 255, 255, 0.1) inset,
-            0 0 40px rgba(99, 102, 241, 0.3);
+            0 20px 60px rgba(0, 0, 0, 0.2),
+            0 0 0 1px rgba(255, 255, 255, 0.1) inset;
           position: relative;
           z-index: 10;
-          transform-style: preserve-3d;
-          perspective: 1000px;
-          animation: phone3D 6s ease-in-out infinite;
         }
-        .phone-mockup::before {
-          content: '';
-          position: absolute;
-          inset: -2px;
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(139, 92, 246, 0.5));
-          border-radius: 47px;
-          opacity: 0.5;
-          filter: blur(20px);
-          z-index: -1;
-          animation: glowPulse 3s ease-in-out infinite;
-        }
+
         .phone-notch {
           position: absolute;
           top: 0;
@@ -612,76 +782,25 @@ export default function Home() {
         .phone-screen {
           width: 100%;
           height: 100%;
-          background: 
-            radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.3), transparent 40%),
-            radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.3), transparent 40%),
-            linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           border-radius: 35px;
           overflow: hidden;
           position: relative;
           padding: 2.5rem 1.5rem;
-          box-shadow: inset 0 0 60px rgba(255, 255, 255, 0.05);
-        }
-        .phone-screen::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-          animation: screenShine 4s ease-in-out infinite;
         }
         
-        @keyframes phone3D {
-          0%, 100% {
-            transform: translateY(0) rotateY(-5deg) rotateX(5deg);
-          }
-          50% {
-            transform: translateY(-20px) rotateY(5deg) rotateX(-5deg);
-          }
-        }
-        @keyframes glowPulse {
-          0%, 100% {
-            opacity: 0.3;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.6;
-            transform: scale(1.05);
-          }
-        }
-        @keyframes cameraBlink {
-          0%, 90%, 100% {
-            opacity: 0.8;
-          }
-          95% {
-            opacity: 0.2;
-          }
-        }
-        @keyframes screenShine {
-          0% {
-            left: -100%;
-          }
-          50%, 100% {
-            left: 200%;
-          }
-        }
-        /* Notifications - Enhanced */
+
+        /* Notifications - Clean */
         .notification {
           position: absolute;
-          background: rgba(255, 255, 255, 0.98);
-          backdrop-filter: blur(20px);
-          border-radius: 18px;
-          padding: 1.1rem;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          border-radius: 16px;
+          padding: 1rem;
           display: flex;
           gap: 1rem;
-          box-shadow: 
-            0 15px 40px rgba(0, 0, 0, 0.3),
-            0 0 0 1px rgba(255, 255, 255, 0.3) inset;
-          animation: notifPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), notifFloat 3s ease-in-out 0.6s infinite;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
           z-index: 3;
-          transform-origin: top center;
         }
         .notif-1 {
           top: 40px;
@@ -695,15 +814,7 @@ export default function Home() {
           animation-delay: 1.5s;
         }
         .notif-icon {
-          font-size: 2.2rem;
-          animation: iconSpin 1s ease backwards;
-          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-        }
-        .notif-1 .notif-icon {
-          animation-delay: 0.3s;
-        }
-        .notif-2 .notif-icon {
-          animation-delay: 1.8s;
+          font-size: 2rem;
         }
         .notif-content {
           flex: 1;
@@ -721,50 +832,19 @@ export default function Home() {
           color: #64748b;
         }
         
-        @keyframes notifPop {
-          0% {
-            opacity: 0;
-            transform: translateY(-40px) scale(0.8);
-          }
-          60% {
-            transform: translateY(5px) scale(1.05);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        @keyframes notifFloat {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-8px);
-          }
-        }
-        @keyframes iconSpin {
-          0% {
-            transform: scale(0) rotate(-180deg);
-          }
-          100% {
-            transform: scale(1) rotate(0deg);
-          }
-        }
+
         
-        /* Mini Map - Enhanced */
+        /* Mini Map - Clean */
         .mini-map {
           position: absolute;
           bottom: 180px;
           left: 1.5rem;
           right: 1.5rem;
           height: 220px;
-          background: rgba(255, 255, 255, 0.98);
-          border-radius: 22px;
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 20px;
           overflow: hidden;
-          box-shadow: 
-            0 15px 40px rgba(0, 0, 0, 0.3),
-            0 0 0 1px rgba(255, 255, 255, 0.3) inset;
-          animation: mapZoom 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) 2.5s backwards;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
         .map-bg {
           width: 100%;
@@ -794,7 +874,7 @@ export default function Home() {
           right: 20%;
           height: 4px;
           background: linear-gradient(90deg, 
-            #6366f1 0%, 
+            #6366f1ff 0%, 
             #8b5cf6 50%, 
             rgba(139, 92, 246, 0.3) 100%
           );
@@ -859,75 +939,21 @@ export default function Home() {
           animation-delay: 1s;
         }
         
-        @keyframes mapZoom {
-          0% {
-            opacity: 0;
-            transform: scale(0.5);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        @keyframes mapPan {
-          0%, 100% {
-            background-position: 0 0, 0 0, 0 10px, 10px -10px, -10px 0px;
-          }
-          50% {
-            background-position: 0 0, 10px 10px, 10px 20px, 20px 0px, 0px 10px;
-          }
-        }
-        @keyframes routePulse {
-          0%, 100% {
-            opacity: 0.6;
-          }
-          50% {
-            opacity: 1;
-          }
-        }
-        @keyframes routeDot {
-          0% {
-            left: 0%;
-          }
-          100% {
-            left: 100%;
-          }
-        }
-        @keyframes markerPulse {
-          0%, 100% {
-            transform: translateY(-50%) scale(1);
-          }
-          50% {
-            transform: translateY(-55%) scale(1.1);
-          }
-        }
-        @keyframes markerRipple {
-          0% {
-            opacity: 0.6;
-            transform: translate(-50%, -50%) scale(0.5);
-          }
-          100% {
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(1.5);
-          }
-        }
+
         
-        /* Progress Tracker - Enhanced */
+        /* Progress Tracker - Clean */
         .progress-tracker {
           position: absolute;
           bottom: 40px;
           left: 1.5rem;
           right: 1.5rem;
-          background: rgba(255, 255, 255, 0.98);
-          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 16px;
           padding: 1.3rem 1rem;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          box-shadow: 
-            0 15px 40px rgba(0, 0, 0, 0.3),
-            0 0 0 1px rgba(255, 255, 255, 0.3) inset;
-          animation: trackerSlide 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) 3.5s backwards;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
         .tracker-step {
           display: flex;
@@ -1006,45 +1032,15 @@ export default function Home() {
           box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
         }
         
-        @keyframes trackerSlide {
-          0% {
-            opacity: 0;
-            transform: translateY(40px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes stepComplete {
-          0% {
-            transform: scale(0.8);
-          }
-          50% {
-            transform: scale(1.2);
-          }
-          100% {
-            transform: scale(1);
-          }
-        }
-        @keyframes circlePulse {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.5), 0 0 0 3px rgba(139, 92, 246, 0.2);
-          }
-          50% {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.6), 0 0 0 6px rgba(139, 92, 246, 0.3);
-          }
-        }
+
         
-        /* Orbiting Food - Enhanced 3D */
+        /* Orbiting Food - Subtle */
         .food-orbit {
           position: absolute;
-          font-size: 3rem;
-          animation: orbit3D 10s ease-in-out infinite;
-          filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.3));
-          transform-style: preserve-3d;
+          font-size: 2.5rem;
+          animation: orbit3D 12s ease-in-out infinite;
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+          opacity: 0.6;
         }
         .orbit-1 {
           top: 8%;
@@ -1102,16 +1098,10 @@ export default function Home() {
         }
         @keyframes orbit3D {
           0%, 100% {
-            transform: translateY(0) translateZ(0) rotateZ(0deg) scale(1);
-          }
-          25% {
-            transform: translateY(-40px) translateZ(30px) rotateZ(90deg) scale(1.2);
+            transform: translateY(0) scale(1);
           }
           50% {
-            transform: translateY(0) translateZ(0) rotateZ(180deg) scale(1);
-          }
-          75% {
-            transform: translateY(40px) translateZ(-30px) rotateZ(270deg) scale(0.8);
+            transform: translateY(-20px) scale(1.1);
           }
         }
         @keyframes lineProgress {
@@ -1123,90 +1113,65 @@ export default function Home() {
           }
         }
 
-        .hero-circle {
-          position: absolute;
-          border-radius: 50%;
-          z-index: 1;
-          filter: blur(40px);
-          opacity: 0.3;
-        }
-        .hero-circle.circle-1 {
-          width: 300px;
-          height: 300px;
-          background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
-          top: -60px;
-          right: -60px;
-          animation-delay: 0s;
-        }
-        .hero-circle.circle-2 {
-          width: 250px;
-          height: 250px;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.1), transparent 70%);
-          bottom: 20%;
-          left: -80px;
-        }
-        .hero-circle.circle-3 {
-          width: 150px;
-          height: 150px;
-          background: radial-gradient(circle, rgba(236, 72, 153, 0.12), transparent 70%);
-          top: 40%;
-          right: 20%;
-        }
-
         /* CATEGORIES */
         .categories {
           text-align: center;
-          padding: 5rem 2rem;
+          padding: 4rem 2rem;
         }
         .section-title {
-          font-size: 2.25rem;
+          font-size: 2rem;
           font-weight: 700;
           margin-bottom: 0.5rem;
-          color: #111827;
+          color: #0f172a;
+          letter-spacing: -0.5px;
         }
         .section-title span {
-          color: #4f46e5;
+          color: #6366f1;
         }
         .section-desc {
-          font-size: 1.1rem;
-          color: #6b7280;
-          margin-bottom: 3rem;
+          font-size: 1rem;
+          color: #64748b;
+          margin-bottom: 2.5rem;
         }
         .categories-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 2rem;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
+          max-width: 1300px;
+          margin: 0 auto;
         }
         .category-card {
           background: #fff;
-          padding: 2rem;
-          border-radius: 1rem;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          padding: 1.8rem;
+          border-radius: 16px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+          transition: all 0.3s ease;
           cursor: pointer;
+          border: 1px solid #f1f5f9;
         }
         .category-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
         }
 
         /* FEATURED PRODUCTS */
         .featured-products {
           padding: 3rem 2rem;
-          max-width: 1200px;
+          max-width: 1300px;
           margin: 0 auto;
         }
         .featured-products h2 {
-          font-size: 1.75rem;
+          font-size: 1.6rem;
           margin-bottom: 0;
-          color: #111827;
+          color: #0f172a;
           font-weight: 700;
+          letter-spacing: -0.3px;
         }
         .product-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
-          max-width: 1200px;
+          gap: 20px;
+          max-width: 1300px;
           margin: 0 auto;
         }
         @media (max-width: 1200px) {
@@ -1226,41 +1191,20 @@ export default function Home() {
         }
         .product-placeholder {
           height: 300px;
-          width: 250px;
-          background: #e5e7eb;
+          background: #f1f5f9;
           border-radius: 16px;
-          animation: pulse 1.5s infinite;
+          animation: pulse 2s infinite;
         }
 
         /* BECOME A SELLER SECTION */
         .become-seller {
           padding: 5rem 2rem;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+          background: linear-gradient(135deg, #6366f1 0%, #7c3aed 100%);
           position: relative;
           overflow: hidden;
+          margin-top: 4rem;
         }
-        .become-seller::before {
-          content: '';
-          position: absolute;
-          top: -50%;
-          right: -10%;
-          width: 400px;
-          height: 400px;
-          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-        }
-        .become-seller::after {
-          content: '';
-          position: absolute;
-          bottom: -30%;
-          left: -10%;
-          width: 400px;
-          height: 400px;
-          background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-        }
+
         .seller-wrapper {
           max-width: 1200px;
           margin: 0 auto;
@@ -1286,8 +1230,8 @@ export default function Home() {
           border: 1px solid rgba(255,255,255,0.3);
         }
         .seller-title {
-          font-size: 3rem;
-          font-weight: 900;
+          font-size: 2.8rem;
+          font-weight: 800;
           line-height: 1.2;
           margin-bottom: 1.5rem;
         }
@@ -1298,9 +1242,9 @@ export default function Home() {
           text-shadow: 0 2px 10px rgba(251, 191, 36, 0.3);
         }
         .seller-description {
-          font-size: 1.1rem;
-          line-height: 1.8;
-          opacity: 0.95;
+          font-size: 1.05rem;
+          line-height: 1.7;
+          opacity: 0.9;
           margin-bottom: 2.5rem;
         }
         .seller-features {
@@ -1322,7 +1266,6 @@ export default function Home() {
         }
         .feature-item:hover {
           background: rgba(255,255,255,0.15);
-          transform: translateX(10px);
         }
         .feature-icon {
           font-size: 2rem;
@@ -1380,7 +1323,6 @@ export default function Home() {
           color: #fff;
           box-shadow: 0 8px 32px rgba(0,0,0,0.2);
           transition: all 0.3s ease;
-          animation: cardFloat 3s ease-in-out infinite;
         }
         .visual-card:hover {
           transform: translateY(-10px) scale(1.05);
@@ -1388,15 +1330,12 @@ export default function Home() {
         }
         .card-1 {
           grid-column: 1 / 2;
-          animation-delay: 0s;
         }
         .card-2 {
           grid-column: 2 / 3;
-          animation-delay: 0.5s;
         }
         .card-3 {
           grid-column: 1 / 3;
-          animation-delay: 1s;
         }
         .card-icon {
           font-size: 3rem;
@@ -1419,7 +1358,7 @@ export default function Home() {
             opacity: 1;
           }
           50% {
-            opacity: 0.5;
+            opacity: 0.7;
           }
         }
         
@@ -1436,6 +1375,13 @@ export default function Home() {
           z-index: 10;
           animation: fadeIn 1s ease backwards;
           animation-delay: 1.2s;
+          opacity: 1;
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .scroll-indicator.hidden {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px);
+          pointer-events: none;
         }
         .scroll-mouse {
           width: 28px;
@@ -1476,6 +1422,142 @@ export default function Home() {
           }
         }
 
+        /* Trending Section */
+        .trending-section {
+          padding: 4rem 2rem;
+          max-width: 1300px;
+          margin: 3rem auto;
+          background: #ffffff;
+          border-radius: 24px;
+          position: relative;
+          overflow: hidden;
+          border: 1px solid #f1f5f9;
+          box-shadow: 0 2px 20px rgba(0, 0, 0, 0.03);
+        }
+        .trending-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 3rem;
+          flex-wrap: wrap;
+          gap: 1.5rem;
+          position: relative;
+          z-index: 1;
+        }
+        .trending-title-wrap {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .trending-icon {
+          width: 64px;
+          height: 64px;
+          background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          box-shadow: 0 4px 16px rgba(251, 146, 60, 0.2);
+        }
+        .trending-title {
+          font-size: 2.2rem;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+          letter-spacing: -0.5px;
+        }
+        .trending-subtitle {
+          font-size: 0.95rem;
+          color: #64748b;
+          margin: 0.4rem 0 0;
+          font-weight: 400;
+        }
+        .view-all-trending {
+          padding: 0.8rem 1.8rem;
+          background: #0f172a;
+          color: #fff;
+          border: none;
+          border-radius: 10px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .view-all-trending:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+          background: #1e293b;
+        }
+        .view-all-trending .arrow {
+          font-size: 1.3rem;
+          transition: transform 0.3s ease;
+        }
+        .view-all-trending:hover .arrow {
+          transform: translateX(5px);
+        }
+        .trending-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+          position: relative;
+          z-index: 1;
+        }
+        .trending-product-wrapper {
+          position: relative;
+        }
+        .trending-badge {
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+          color: #fff;
+          padding: 0.35rem 0.7rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 0.3rem;
+          box-shadow: 0 2px 8px rgba(251, 146, 60, 0.3);
+          z-index: 10;
+          border: 2px solid #fff;
+        }
+        @media (max-width: 1200px) {
+          .trending-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        @media (max-width: 900px) {
+          .trending-section {
+            padding: 3rem 1.5rem;
+            margin: 2rem 1rem;
+          }
+          .trending-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+          .trending-title {
+            font-size: 1.8rem;
+          }
+        }
+        @media (max-width: 600px) {
+          .trending-grid {
+            grid-template-columns: 1fr;
+          }
+          .trending-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .view-all-trending {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
           to {
             opacity: 1;
             transform: translateX(0);
@@ -1486,13 +1568,8 @@ export default function Home() {
           .hero {
             flex-direction: column;
             text-align: center;
-            padding: 3rem 1.5rem;
+            padding: 2.5rem 1.5rem;
             min-height: auto;
-          }
-          .hero::before,
-          .hero::after {
-            width: 300px;
-            height: 300px;
           }
           .hero-wrapper {
             gap: 2.5rem;
@@ -1539,11 +1616,11 @@ export default function Home() {
           }
           .seller-wrapper {
             grid-template-columns: 1fr;
-            gap: 3rem;
+            gap: 2.5rem;
             text-align: center;
           }
           .seller-title {
-            font-size: 2rem;
+            font-size: 1.8rem;
           }
           .seller-features {
             align-items: center;
@@ -1563,6 +1640,246 @@ export default function Home() {
           }
           .card-stat {
             font-size: 2rem;
+          }
+        }
+      `}</style>
+
+      {/* FOOTER */}
+      <footer className="home-footer">
+        <div className="footer-container">
+          {/* Footer Top */}
+          <div className="footer-top">
+            <div className="footer-brand">
+              <div className="footer-logo">
+                <Icon name="moon" size={32} />
+                <span className="footer-brand-name">Midnight Cravings</span>
+              </div>
+              <p className="footer-tagline">
+                Your late-night craving companion. Quick delivery of snacks, drinks, and more right to your hostel room.
+              </p>
+              <div className="footer-social">
+                <a href="#" className="social-link">
+                  <Icon name="fire" size={20} />
+                </a>
+                <a href="#" className="social-link">
+                  <Icon name="star" size={20} />
+                </a>
+                <a href="#" className="social-link">
+                  <Icon name="heart" size={20} />
+                </a>
+              </div>
+            </div>
+
+            <div className="footer-links">
+              <div className="footer-column">
+                <h4 className="footer-title">Quick Links</h4>
+                <ul className="footer-list">
+                  <li><a href="/products" className="footer-link">Browse Menu</a></li>
+                  <li><a href="/cart" className="footer-link">My Cart</a></li>
+                  <li><a href="/orders" className="footer-link">Track Order</a></li>
+                  <li><a href="/seller" className="footer-link">Become Seller</a></li>
+                </ul>
+              </div>
+
+              <div className="footer-column">
+                <h4 className="footer-title">Categories</h4>
+                <ul className="footer-list">
+                  <li><a href="/products" className="footer-link">Snacks</a></li>
+                  <li><a href="/products" className="footer-link">Beverages</a></li>
+                  <li><a href="/products" className="footer-link">Desserts</a></li>
+                  <li><a href="/products" className="footer-link">Fast Food</a></li>
+                </ul>
+              </div>
+
+              <div className="footer-column">
+                <h4 className="footer-title">Support</h4>
+                <ul className="footer-list">
+                  <li><a href="#" className="footer-link">Help Center</a></li>
+                  <li><a href="#" className="footer-link">Contact Us</a></li>
+                  <li><a href="#" className="footer-link">Terms of Service</a></li>
+                  <li><a href="#" className="footer-link">Privacy Policy</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Bottom */}
+          <div className="footer-bottom">
+            <p className="footer-copyright">
+              © {new Date().getFullYear()} Midnight Cravings. All rights reserved.
+            </p>
+            <p className="footer-made">
+              Made with <Icon name="heart" size={16} /> for hungry students
+            </p>
+          </div>
+        </div>
+      </footer>
+
+      <style>{`
+        /* Footer Styles */
+        .home-footer {
+          background: #0f172a;
+          color: #fff;
+          margin-top: 5rem;
+        }
+
+        .footer-container {
+          max-width: 1300px;
+          margin: 0 auto;
+          padding: 4rem 2rem 2rem;
+        }
+
+        .footer-top {
+          display: grid;
+          grid-template-columns: 1.5fr 2fr;
+          gap: 4rem;
+          margin-bottom: 3rem;
+          padding-bottom: 3rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .footer-brand {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .footer-logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .footer-brand-name {
+          font-size: 24px;
+          font-weight: 800;
+          background: linear-gradient(135deg, #fbbf24, #f59e0b);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .footer-tagline {
+          color: #9ca3af;
+          line-height: 1.6;
+          font-size: 14px;
+          max-width: 350px;
+        }
+
+        .footer-social {
+          display: flex;
+          gap: 12px;
+        }
+
+        .social-link {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9ca3af;
+          transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+          background: #6366f1;
+          border-color: #6366f1;
+          color: #fff;
+          transform: translateY(-3px);
+        }
+
+        .footer-links {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 40px;
+        }
+
+        .footer-column {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .footer-title {
+          font-size: 16px;
+          font-weight: 700;
+          color: #fff;
+          margin: 0;
+        }
+
+        .footer-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .footer-link {
+          color: #9ca3af;
+          font-size: 14px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          display: inline-block;
+        }
+
+        .footer-link:hover {
+          color: #fbbf24;
+          transform: translateX(4px);
+        }
+
+        .footer-bottom {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 30px;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .footer-copyright,
+        .footer-made {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        @media (max-width: 900px) {
+          .footer-top {
+            grid-template-columns: 1fr;
+            gap: 40px;
+          }
+
+          .footer-links {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+          }
+
+          .footer-bottom {
+            flex-direction: column;
+            text-align: center;
+          }
+        }
+
+        @media (max-width: 600px) {
+          .footer-container {
+            padding: 40px 20px 20px;
+          }
+
+          .footer-links {
+            grid-template-columns: 1fr;
+            gap: 30px;
+          }
+
+          .footer-tagline {
+            font-size: 13px;
           }
         }
       `}</style>

@@ -270,7 +270,18 @@ export default function Navbar() {
               <span style={styles.userName}>{user.name}</span>
               <span style={styles.userRole}>Admin</span>
             </div>
-            <button onClick={handleLogout} style={styles.logoutBtn}>
+            <button 
+              onClick={handleLogout} 
+              style={styles.logoutBtn}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#dc2626';
+                e.target.style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#dc2626';
+              }}
+            >
               <i data-feather="log-out"></i>
               Logout
             </button>
@@ -322,7 +333,18 @@ export default function Navbar() {
               <span style={styles.mobileUserName}>{user.name}</span>
               <span style={styles.mobileUserRole}>Admin</span>
             </div>
-            <button onClick={handleLogout} style={styles.mobileLogoutBtn}>
+            <button 
+              onClick={handleLogout} 
+              style={styles.mobileLogoutBtn}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#dc2626';
+                e.target.style.color = '#fff';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                e.target.style.color = '#dc2626';
+              }}
+            >
               <i data-feather="log-out"></i>
               Logout
             </button>
@@ -853,28 +875,27 @@ const styles = {
     letterSpacing: "0.5px",
   },
   logoutBtn: {
-    padding: "10px 18px",
-    background: "linear-gradient(135deg, #ef4444, #dc2626)",
-    border: "none",
+    padding: "10px 20px",
+    background: "transparent",
+    border: "2px solid #dc2626",
     borderRadius: "8px",
-    color: "#fff",
+    color: "#dc2626",
     fontWeight: 600,
-    fontSize: "14px",
+    fontSize: "15px",
     cursor: "pointer",
-    transition: "all 0.3s ease",
+    transition: "all 0.2s ease",
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)",
   },
   mobileLogoutBtn: {
-    padding: "12px",
-    background: "linear-gradient(135deg, #ef4444, #dc2626)",
-    border: "none",
+    padding: "12px 16px",
+    background: "transparent",
+    border: "2px solid #dc2626",
     borderRadius: "8px",
-    color: "#fff",
+    color: "#dc2626",
     fontWeight: 600,
-    fontSize: "14px",
+    fontSize: "15px",
     cursor: "pointer",
     margin: "8px 12px",
     display: "flex",

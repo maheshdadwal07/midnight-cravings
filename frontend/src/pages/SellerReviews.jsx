@@ -141,7 +141,7 @@ export default function SellerReviews() {
               )}
               {seller?.hostelBlock && (
                 <p style={{ fontSize: 14, color: "#9ca3af", margin: 0 }}>
-                  📍 {seller.hostelBlock}
+                  Hostel: {seller.hostelBlock}
                 </p>
               )}
             </div>

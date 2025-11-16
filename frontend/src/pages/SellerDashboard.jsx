@@ -78,16 +78,9 @@ export default function SellerDashboard() {
       if (requestsRes.status === "fulfilled")
         setProductRequests(requestsRes.value.data);
 
-      if (
-        sellerRes.status !== "fulfilled" ||
-        ordersRes.status !== "fulfilled" ||
-        productsRes.status !== "fulfilled"
-      ) {
-        toast.error("Some data failed to load. Check console.");
-        console.error("Seller API:", sellerRes.reason);
-        console.error("Orders API:", ordersRes.reason);
-        console.error("Products API:", productsRes.reason);
-      }
+      if (sellerRes.status === "fulfilled") setListings(sellerRes.value.data);
+      if (ordersRes.status === "fulfilled") setOrders(ordersRes.value.data);
+      if (productsRes.status === "fulfilled") setProducts(productsRes.value.data);
 
       setLoading(false);
     }
