@@ -12,10 +12,8 @@ connectDB();
 
 const seedData = async () => {
   try {
-    // Clear existing data
-    await User.deleteMany();
-    await Product.deleteMany();
-    await SellerProduct.deleteMany();
+   
+   
 
     // Create users
     const adminPassword = await bcrypt.hash("admin123", 10);
