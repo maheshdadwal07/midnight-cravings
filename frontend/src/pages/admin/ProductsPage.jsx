@@ -252,7 +252,7 @@ export default function ProductsPage() {
             </option>
           ))}
         </select>
-        <select
+        {/* <select
           value={selectedHostel}
           onChange={(e) => setSelectedHostel(e.target.value)}
           className="filterSelect"
@@ -263,7 +263,7 @@ export default function ProductsPage() {
               {h}
             </option>
           ))}
-        </select>
+        </select> */}
         {(searchQuery || selectedCategory || selectedHostel) && (
           <button
             className="clearBtn"

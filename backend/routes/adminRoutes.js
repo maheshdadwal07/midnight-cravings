@@ -4,7 +4,6 @@ import { protectRoute } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// ✅ Admin: Get all users
 router.get("/users", protectRoute(["admin"]), async (req, res) => {
   try {
     const users = await User.find({ role: "user" }).select("-passwordHash");
@@ -14,7 +13,6 @@ router.get("/users", protectRoute(["admin"]), async (req, res) => {
   }
 });
 
-// ✅ Admin: Get all sellers
 router.get("/sellers", protectRoute(["admin"]), async (req, res) => {
   try {
     const sellers = await User.find({ role: "seller" }).select("-passwordHash");
@@ -24,7 +22,6 @@ router.get("/sellers", protectRoute(["admin"]), async (req, res) => {
   }
 });
 
-// ✅ Admin: Get full seller profile (for See Profile)
 router.get("/seller/:id", protectRoute(["admin"]), async (req, res) => {
   try {
     const seller = await User.findById(req.params.id)
@@ -44,7 +41,6 @@ router.get("/seller/:id", protectRoute(["admin"]), async (req, res) => {
   }
 });
 
-// ✅ Admin: Delete user or seller
 router.delete("/user/:id", protectRoute(["admin"]), async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -54,7 +50,6 @@ router.delete("/user/:id", protectRoute(["admin"]), async (req, res) => {
   }
 });
 
-// ✅ Admin: Ban / unban seller
 router.patch("/seller/:id/ban", protectRoute(["admin"]), async (req, res) => {
   try {
     const seller = await User.findById(req.params.id);

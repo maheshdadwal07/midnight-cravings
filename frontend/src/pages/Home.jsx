@@ -491,68 +491,70 @@ export default function Home() {
         </>
       )}
 
-      {/* BECOME A SELLER SECTION */}
-      <section className="become-seller">
-        <div className="seller-wrapper">
-          <div className="seller-content">
-            <div className="seller-badge"><Icon name="fire" size={20} /> Start Selling Today</div>
-            <h2 className="seller-title">
-              Turn Your Passion Into <span>Profit</span>
-            </h2>
-            <p className="seller-description">
-              Join our thriving marketplace and reach thousands of hungry customers. 
-              Set your own prices, manage your inventory, and grow your business with ease.
-            </p>
-            <div className="seller-features">
-              <div className="feature-item">
-                <span className="feature-icon"><Icon name="dollar" size={32} /></span>
-                <div>
-                  <h4>Earn More</h4>
-                  <p>Competitive commission rates</p>
+      {/* BECOME A SELLER SECTION - Only show when NOT logged in */}
+      {!user && (
+        <section className="become-seller">
+          <div className="seller-wrapper">
+            <div className="seller-content">
+              <div className="seller-badge"><Icon name="fire" size={20} /> Start Selling Today</div>
+              <h2 className="seller-title">
+                Turn Your Passion Into <span>Profit</span>
+              </h2>
+              <p className="seller-description">
+                Join our thriving marketplace and reach thousands of hungry customers. 
+                Set your own prices, manage your inventory, and grow your business with ease.
+              </p>
+              <div className="seller-features">
+                <div className="feature-item">
+                  <span className="feature-icon"><Icon name="dollar" size={32} /></span>
+                  <div>
+                    <h4>Earn More</h4>
+                    <p>Competitive commission rates</p>
+                  </div>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-icon"><Icon name="chart" size={32} /></span>
+                  <div>
+                    <h4>Easy Management</h4>
+                    <p>Intuitive seller dashboard</p>
+                  </div>
+                </div>
+                <div className="feature-item">
+                  <span className="feature-icon"><Icon name="target" size={32} /></span>
+                  <div>
+                    <h4>Reach Customers</h4>
+                    <p>Access to large user base</p>
+                  </div>
                 </div>
               </div>
-              <div className="feature-item">
-                <span className="feature-icon"><Icon name="chart" size={32} /></span>
-                <div>
-                  <h4>Easy Management</h4>
-                  <p>Intuitive seller dashboard</p>
-                </div>
+              <button 
+                className="seller-cta-button"
+                onClick={() => navigate('/register?role=seller')}
+              >
+                <span>Start Selling Now</span>
+                <span className="arrow">→</span>
+              </button>
+            </div>
+            <div className="seller-visual">
+              <div className="visual-card card-1">
+                <div className="card-icon"><Icon name="chart" size={48} /></div>
+                <div className="card-stat">+250%</div>
+                <div className="card-label">Growth</div>
               </div>
-              <div className="feature-item">
-                <span className="feature-icon"><Icon name="target" size={32} /></span>
-                <div>
-                  <h4>Reach Customers</h4>
-                  <p>Access to large user base</p>
-                </div>
+              <div className="visual-card card-2">
+                <div className="card-icon"><Icon name="users" size={48} /></div>
+                <div className="card-stat">5000+</div>
+                <div className="card-label">Active Users</div>
+              </div>
+              <div className="visual-card card-3">
+                <div className="card-icon"><Icon name="star" size={48} /></div>
+                <div className="card-stat">4.8/5</div>
+                <div className="card-label">Rating</div>
               </div>
             </div>
-            <button 
-              className="seller-cta-button"
-              onClick={() => navigate('/register?role=seller')}
-            >
-              <span>Start Selling Now</span>
-              <span className="arrow">→</span>
-            </button>
           </div>
-          <div className="seller-visual">
-            <div className="visual-card card-1">
-              <div className="card-icon"><Icon name="chart" size={48} /></div>
-              <div className="card-stat">+250%</div>
-              <div className="card-label">Growth</div>
-            </div>
-            <div className="visual-card card-2">
-              <div className="card-icon"><Icon name="users" size={48} /></div>
-              <div className="card-stat">5000+</div>
-              <div className="card-label">Active Users</div>
-            </div>
-            <div className="visual-card card-3">
-              <div className="card-icon"><Icon name="star" size={48} /></div>
-              <div className="card-stat">4.8/5</div>
-              <div className="card-label">Rating</div>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* STYLES */}
       <style jsx>{`

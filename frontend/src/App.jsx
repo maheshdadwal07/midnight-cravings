@@ -11,6 +11,7 @@ import Cart from "./pages/Cart";
 import MyOrders from "./pages/MyOrders";
 import OrderDetail from "./pages/OrderDetail";
 import SellerReviews from "./pages/SellerReviews";
+import Profile from "./pages/Profile";
 
 // 🧱 Admin pages
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/my-orders" element={<MyOrders />} />
       <Route path="/order/:orderId" element={<OrderDetail />} />
       <Route path="/seller-reviews/:sellerId" element={<SellerReviews />} />
+      <Route path="/profile" element={<Profile />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 

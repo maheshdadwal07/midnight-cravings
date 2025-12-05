@@ -213,11 +213,13 @@ router.post("/signup", upload.single("collegeId"), async (req, res) => {
       message: "Signup successful",
       userId: newUser._id,
       name: newUser.name,
+      email: newUser.email,
       role: newUser.role,
       token,
       sellerStatus: newUser.sellerStatus || null,
       hostelBlock: newUser.hostelBlock || null,
       roomNumber: newUser.roomNumber || null,
+      shopName: newUser.shopName || null,
     });
   } catch (error) {
     res.status(500).json({ message: "Signup failed", error: error.message });
@@ -259,17 +261,108 @@ router.post("/login", async (req, res) => {
       message: "Login successful",
       token,
       name: user.name,
+      email: user.email,
       role: user.role,
       userId: user._id,
       sellerStatus: user.sellerStatus || null,
       hostelBlock: user.hostelBlock || null,
       roomNumber: user.roomNumber || null,
+      shopName: user.shopName || null,
     });
   } catch (error) {
     res.status(500).json({ message: "Login failed", error: error.message });
   }
 });
 
+// ---------------- PUT update profile ----------------
+router.put("/profile", protectRoute(), async (req, res) => {
+  try {
+    const { name, email, hostelBlock, roomNumber, shopName } = req.body;
 
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update fields
+    if (name) user.name = name;
+    if (email) user.email = email.toLowerCase();
+    if (hostelBlock) user.hostelBlock = hostelBlock;
+    if (roomNumber) user.roomNumber = roomNumber;
+    if (shopName && user.role === "seller") user.shopName = shopName;
+
+    await user.save();
+
+    // Return updated user data (exclude sensitive fields)
+    const updatedUser = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      hostelBlock: user.hostelBlock,
+      roomNumber: user.roomNumber,
+      shopName: user.shopName,
+      sellerStatus: user.sellerStatus,
+      createdAt: user.createdAt,
+    };
+
+    res.json({
+      message: "Profile updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update profile", error: error.message });
+  }
+});
+
+// ---------------- GET current user info ----------------
+router.get("/me", protectRoute(), async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-passwordHash");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user", error: error.message });
+  }
+});
+
+// ---------------- PUT change password ----------------
+router.put("/change-password", protectRoute(), async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: "Current and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "New password must be at least 6 characters" });
+    }
+
+    const user = await User.findById(req.user.id || req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Current password is incorrect" });
+    }
+
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = newPasswordHash;
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Failed to change password", error: error.message });
+  }
+});
 
 export default router;

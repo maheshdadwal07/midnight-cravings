@@ -12,17 +12,17 @@ import './internal.css'
 import AuthProvider from './context/AuthProvider'
 import {CartProvider} from './context/CartProvider'
 import { Toaster } from 'react-hot-toast'
-import Layout from './components/Layout'
+import AppWrapper from './AppWrapper'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
         <CartProvider>
-          <Layout>
+          <AppWrapper>
             <App />
-            <Toaster position="top-right" />
-          </Layout>
+          </AppWrapper>
+          <Toaster position="top-right" />
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

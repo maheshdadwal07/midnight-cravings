@@ -17,6 +17,28 @@ export default function Navbar() {
   const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef(null);
 
+  // Inject animation styles
+  useEffect(() => {
+    const styleId = 'navbar-animations';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @keyframes dropdownFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   // Feather icons
   useEffect(() => {
     feather.replace();
@@ -114,23 +136,78 @@ export default function Navbar() {
               <div
                 style={styles.userBadge}
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {user.name[0].toUpperCase()}
+                <div style={styles.avatarText}>{user.name[0].toUpperCase()}</div>
+                <div style={styles.statusDot}></div>
               </div>
               {userDropdownOpen && (
                 <div style={styles.userDropdown}>
-                  <div style={styles.arrow}></div>
-                  <div style={styles.userInfoRow}>
-                    <strong>Name:</strong> {user.name}
+                  <div style={styles.dropdownHeader}>
+                    <div style={styles.dropdownAvatar}>
+                      {user.name[0].toUpperCase()}
+                    </div>
+                    <div style={styles.dropdownUserInfo}>
+                      <div style={styles.dropdownName}>{user.name}</div>
+                      <div style={styles.dropdownRole}>
+                        <Icon name="package" size={12} /> Seller
+                      </div>
+                    </div>
                   </div>
-                  <div style={styles.userInfoRow}>
-                    <strong>Shop:</strong> {user.shopName || "N/A"}
+                  
+                  <div style={styles.dropdownDivider}></div>
+                  
+                  <div style={styles.dropdownSection}>
+                    <div style={styles.infoLabel}>Shop Details</div>
+                    <div style={styles.infoValue}>
+                      <Icon name="store" size={14} /> {user.shopName || "Not set"}
+                    </div>
+                    <div style={styles.infoValue}>
+                      <Icon name="home" size={14} /> {user.hostelBlock || "N/A"} - {user.roomNumber || "N/A"}
+                    </div>
                   </div>
-                  <div style={styles.userInfoRow}>
-                    <strong>Hostel:</strong> {user.hostelBlock || "N/A"} - {user.roomNumber || "N/A"}
-                  </div>
-                  <button style={styles.logoutButton} onClick={handleLogout}>
-                    Logout
+                  
+                  <div style={styles.dropdownDivider}></div>
+                  
+                  <Link 
+                    to="/profile" 
+                    style={styles.dropdownMenuItem}
+                    onClick={() => setUserDropdownOpen(false)}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Icon name="user" size={18} />
+                    <span>My Profile</span>
+                  </Link>
+                  
+                  <Link 
+                    to="/seller" 
+                    style={styles.dropdownMenuItem}
+                    onClick={() => setUserDropdownOpen(false)}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Icon name="chart" size={18} />
+                    <span>Dashboard</span>
+                  </Link>
+                  
+                  <div style={styles.dropdownDivider}></div>
+                  
+                  <button 
+                    style={styles.logoutButton} 
+                    onClick={handleLogout}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#ef4444';
+                      e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fef2f2';
+                      e.currentTarget.style.color = '#ef4444';
+                    }}
+                  >
+                    <Icon name="door" size={18} />
+                    <span>Logout</span>
                   </button>
                 </div>
               )}
@@ -420,30 +497,96 @@ export default function Navbar() {
               <div
                 style={styles.userBadge}
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
-                {user.name[0].toUpperCase()}
+                <div style={styles.avatarText}>{user.name[0].toUpperCase()}</div>
+                <div style={styles.statusDot}></div>
               </div>
               {userDropdownOpen && (
                 <div style={styles.userDropdown}>
-                  <div style={styles.arrow}></div>
-                  <div style={styles.userInfoRow}>
-                    <strong>Name:</strong> {user.name}
+                  <div style={styles.dropdownHeader}>
+                    <div style={styles.dropdownAvatar}>
+                      {user.name[0].toUpperCase()}
+                    </div>
+                    <div style={styles.dropdownUserInfo}>
+                      <div style={styles.dropdownName}>{user.name}</div>
+                      <div style={styles.dropdownEmail}>{user.email || "user@example.com"}</div>
+                      <div style={styles.dropdownRole}>
+                        <Icon name={user.role === "admin" ? "shield" : user.role === "seller" ? "package" : "user"} size={12} />
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </div>
+                    </div>
                   </div>
-                  <div style={styles.userInfoRow}>
-                    <strong>Email:</strong> {user.email || "N/A"}
-                  </div>
+                  
+                  <div style={styles.dropdownDivider}></div>
+                  
+                  <Link 
+                    to="/profile" 
+                    style={styles.dropdownMenuItem}
+                    onClick={() => setUserDropdownOpen(false)}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <Icon name="user" size={18} />
+                    <span>My Profile</span>
+                  </Link>
+                  
                   {user.role === "admin" && (
-                    <Link to="/admin" style={styles.dropdownLink}>
-                      Admin
+                    <Link 
+                      to="/admin" 
+                      style={styles.dropdownMenuItem}
+                      onClick={() => setUserDropdownOpen(false)}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Icon name="shield" size={18} />
+                      <span>Admin Panel</span>
                     </Link>
                   )}
+                  
                   {user.role === "seller" && (
-                    <Link to="/seller" style={styles.dropdownLink}>
-                      Dashboard
+                    <Link 
+                      to="/seller" 
+                      style={styles.dropdownMenuItem}
+                      onClick={() => setUserDropdownOpen(false)}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Icon name="chart" size={18} />
+                      <span>Seller Dashboard</span>
                     </Link>
                   )}
-                  <button style={styles.logoutButton} onClick={handleLogout}>
-                    Logout
+                  
+                  {user.role === "user" && (
+                    <Link 
+                      to="/my-orders" 
+                      style={styles.dropdownMenuItem}
+                      onClick={() => setUserDropdownOpen(false)}
+                      onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <Icon name="package" size={18} />
+                      <span>My Orders</span>
+                    </Link>
+                  )}
+                  
+                  <div style={styles.dropdownDivider}></div>
+                  
+                  <button 
+                    style={styles.logoutButton} 
+                    onClick={handleLogout}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#ef4444';
+                      e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fef2f2';
+                      e.currentTarget.style.color = '#ef4444';
+                    }}
+                  >
+                    <Icon name="door" size={18} />
+                    <span>Logout</span>
                   </button>
                 </div>
               )}
@@ -529,13 +672,20 @@ export default function Navbar() {
 
           {user ? (
             <>
+              <Link
+                to="/profile"
+                style={styles.mobileLink}
+                onClick={() => setMobileOpen(false)}
+              >
+                <Icon name="user" size={16} /> Profile
+              </Link>
               {user.role === "admin" && (
                 <Link
                   to="/admin"
                   style={styles.mobileLink}
                   onClick={() => setMobileOpen(false)}
                 >
-                  Admin
+                  <Icon name="shield" size={16} /> Admin
                 </Link>
               )}
               {user.role === "seller" && (
@@ -544,7 +694,7 @@ export default function Navbar() {
                   style={styles.mobileLink}
                   onClick={() => setMobileOpen(false)}
                 >
-                  Dashboard
+                  <Icon name="chart" size={16} /> Dashboard
                 </Link>
               )}
               <button style={styles.logoutButtonMobile} onClick={handleLogout}>
@@ -655,52 +805,157 @@ const styles = {
   },
   userContainer: { position: "relative" },
   userBadge: {
-    width: "42px",
-    height: "42px",
+    position: "relative",
+    width: "44px",
+    height: "44px",
     borderRadius: "50%",
-    background: "linear-gradient(135deg,#6366f1,#4f46e5)",
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     color: "#fff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    fontWeight: 600,
-    fontSize: "1rem",
+    fontWeight: 700,
+    fontSize: "1.1rem",
+    border: "3px solid #fff",
+    boxShadow: "0 4px 12px rgba(102, 126, 234, 0.4)",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  },
+  avatarText: {
+    position: "relative",
+    zIndex: 1,
+  },
+  statusDot: {
+    position: "absolute",
+    bottom: "2px",
+    right: "2px",
+    width: "12px",
+    height: "12px",
+    borderRadius: "50%",
+    background: "#10b981",
+    border: "2px solid #fff",
+    zIndex: 2,
   },
   userDropdown: {
     position: "absolute",
-    top: "55px",
+    top: "58px",
     right: "0",
     backgroundColor: "#fff",
-    padding: "16px 20px",
-    borderRadius: "12px",
-    boxShadow: "0 10px 28px rgba(0,0,0,0.18)",
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    width: "220px",
+    padding: "0",
+    borderRadius: "16px",
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1)",
+    width: "280px",
     zIndex: 1001,
+    border: "1px solid rgba(0, 0, 0, 0.08)",
+    overflow: "hidden",
+    animation: "dropdownFadeIn 0.2s ease-out",
   },
-  arrow: {
-    position: "absolute",
-    top: "-10px",
-    right: "16px",
-    width: 0,
-    height: 0,
-    borderLeft: "8px solid transparent",
-    borderRight: "8px solid transparent",
-    borderBottom: "10px solid #fff",
-  },
-  userInfoRow: { fontSize: "0.92rem", color: "#111827" },
-  logoutButton: {
-    padding: "6px 12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    background: "#6366f1",
+  dropdownHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "20px",
+    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     color: "#fff",
-    border: "none",
-    fontSize: "0.9rem",
+  },
+  dropdownAvatar: {
+    width: "48px",
+    height: "48px",
+    borderRadius: "50%",
+    background: "rgba(255, 255, 255, 0.2)",
+    backdropFilter: "blur(10px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 700,
+    fontSize: "1.2rem",
+    border: "2px solid rgba(255, 255, 255, 0.3)",
+  },
+  dropdownUserInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  dropdownName: {
+    fontSize: "16px",
+    fontWeight: 700,
+    marginBottom: "4px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  dropdownEmail: {
+    fontSize: "12px",
+    opacity: 0.9,
+    marginBottom: "6px",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  dropdownRole: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    fontSize: "11px",
+    fontWeight: 600,
+    padding: "4px 8px",
+    borderRadius: "12px",
+    background: "rgba(255, 255, 255, 0.25)",
+    backdropFilter: "blur(10px)",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  },
+  dropdownSection: {
+    padding: "12px 20px",
+  },
+  infoLabel: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    marginBottom: "8px",
+  },
+  infoValue: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "13px",
+    color: "#374151",
+    marginBottom: "6px",
+    padding: "6px 0",
+  },
+  dropdownDivider: {
+    height: "1px",
+    background: "linear-gradient(90deg, transparent, #e5e7eb 50%, transparent)",
+    margin: "8px 0",
+  },
+  dropdownMenuItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px 20px",
+    textDecoration: "none",
+    color: "#374151",
+    fontSize: "14px",
     fontWeight: 500,
+    transition: "all 0.2s ease",
+    cursor: "pointer",
+  },
+  logoutButton: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "8px",
+    padding: "12px 20px",
+    margin: "8px 16px 16px",
+    borderRadius: "10px",
+    cursor: "pointer",
+    background: "#fef2f2",
+    color: "#ef4444",
+    border: "2px solid #fee2e2",
+    fontSize: "14px",
+    fontWeight: 600,
+    transition: "all 0.2s ease",
   },
   logoutButtonMobile: {
     padding: "8px 12px",
